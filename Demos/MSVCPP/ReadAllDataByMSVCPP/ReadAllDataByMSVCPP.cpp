@@ -7,29 +7,30 @@
 //  Illustrates the functions exported by SEPIA2_Lib
 //  Scans the whole PQLaserDrv rack and displays all relevant data
 //
+//  Consider, this code is for demonstration purposes only.
+//  Don't use it in productive environments!
+//
 //-----------------------------------------------------------------------------
 //  HISTORY:
 //
-//  apo  22.12.05   release of the library interface
-//
-//  apo  25.01.06   release of the DLL interface
+//  apo  06.02.06   created
 //
 //  apo  12.02.07   introduced SML Multilaser Module (V1.0.2.0)
 //
 //  apo  05.02.14   introduced new map oriented API functions (V1.0.3.282)
 //
-//  apo  26.02.14   raised library version to 1.1 due to API changes
-//                    on the device open interfaces
-//                    (new parameter strProductModel)
-//                  encoded bitwidth of target architecture into
-//                    version field 'MinorHighWord', e.g.:
-//                    V1.1.32.293 or V1.1.64.293, respectively
+//  apo  05.09.14   adapted to DLL version 1.1.<target>.<svn_build>
+//
+//  apo  18.06.15   substituted deprecated SLM functions
+//                  introduced SOM-D Oscillator Module w. Delay Option (V1.1.xx.450)
 //
 //-----------------------------------------------------------------------------
 //
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <windows.h>
 
 extern "C"
@@ -40,20 +41,25 @@ extern "C"
   #include "Sepia2_ErrorCodes.h"
 }
 
+//char PRAEFIXES []   = "yzafpnµm kMGTPEZY";
+  char PRAEFIXES []   = "yzafpnæm kMGTPEZY";
+  int  PRAEFIX_OFFSET = 8;
+
 void PrintUptimers (unsigned long ulMainPowerUp, unsigned long ulActivePowerUp, unsigned long ulScaledPowerUp)
 {
-  int hh, mm, hlp;
+  int    hlp;
+  ldiv_t res;
   //
   hlp = (int)(5.0 * (ulMainPowerUp + 0x7F) / 0xFF);
-  mm  = hlp % 60; hh  = hlp / 60;
+  res = ldiv (hlp, 60);
   printf ("\n");
-  printf ("%47s  =    %2.2d:%2.2d hrs\n",  "main power uptime",   hh, mm);
+  printf ("%47s  = %5d:%2.2d h\n",  "main power uptime",   res.quot, res.rem);
   //
   if (ulActivePowerUp > 1)
   {
     hlp = (int)(5.0 * (ulActivePowerUp + 0x7F) / 0xFF);
-    mm  = hlp % 60; hh  = hlp / 60;
-    printf ("%47s  =    %2.2d:%2.2d hrs\n",  "act. power uptime", hh, mm);
+    res = ldiv (hlp, 60);
+    printf ("%47s  = %5d:%2.2d hrs\n",  "act. power uptime", res.quot, res.rem);
     //
     if (ulScaledPowerUp > (0.001 * ulActivePowerUp))
     {
@@ -63,17 +69,86 @@ void PrintUptimers (unsigned long ulMainPowerUp, unsigned long ulActivePowerUp, 
   printf ("\n");
 }
 
-
-
-int main (int argc, char* argv[])
+char* IntToBin (char* cDest, int iDestLen, int iValue, int iDigits, unsigned char bLowToHigh, char cOnChar = '1', char cOffChar = '0')
 {
-  int             iRetVal        = SEPIA2_ERR_NO_ERROR;
+  int i, iTo;
+  char cTemp [33] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+  //
+  *cDest = '\0';
+  iTo    = __min (__max (1, abs(iDigits)), 32); 
+  for (i = 0; i < iTo; i++)
+  {
+    cTemp [i] = ((iValue & (1 << i)) != 0) ? cOnChar : cOffChar;
+  }
+  cTemp [iTo] = '\0';
+  if (!bLowToHigh)
+  {
+    _strrev (cTemp);
+  }
+  strcpy_s (cDest, iDestLen, cTemp);
+  return cDest;
+}
+
+char* FormatEng (char* cDest, int iDestLen, double fInp, int iMant, char* cUnit = "", int iFixedSpace = -1, int iFixedDigits = -1, unsigned char bUnitSep = 1)
+{
+  int           i;
+  unsigned char bNSign;
+  double        fNorm;
+  double        fTemp0;
+  int           iTemp;
+  char          cTemp [64];
+  //
+  *cDest  = '\0';
+  //
+  bNSign = (fInp < 0);
+  if (fInp == 0)
+  {
+    iTemp  = 0;
+    fNorm  = 0;
+  }
+  else 
+  {
+    fTemp0 = log (fabs (fInp)) / log (1000.0);
+    iTemp  = (int) floor (fTemp0);
+    fNorm  = pow ((double)1000.0, fmod (fTemp0, 1.0) + ((fTemp0 > 0) || ((fTemp0 - iTemp) == 0) ? 0 : 1));
+  }
+  //
+  i = iMant-1;
+  if (fNorm >=  10) 
+  {
+    i-=1;
+  }
+  if (fNorm >= 100) 
+  {
+    i-=1;
+  }
+  //
+  sprintf_s (cTemp, sizeof (cTemp), "%.*f%s%c%s", iFixedDigits < 0? i : iFixedDigits, fNorm * (bNSign ? -1.0 : 1.0), (bUnitSep ? " " : ""), PRAEFIXES [iTemp + PRAEFIX_OFFSET], cUnit);
+  //
+  if (iFixedSpace > (int) strlen (cTemp))
+  {
+    sprintf_s (cDest, iDestLen, "%*s%s", iFixedSpace - strlen (cTemp), "", cTemp);
+  }
+  else
+  {
+    strcpy_s (cDest, iDestLen, cTemp);
+  }
+  //
+  return cDest;
+}
+
+
+int main(int argc, char* argv[])
+{
+  int             iRetVal                                        = SEPIA2_ERR_NO_ERROR;
   char            c;
   //
   char            cLibVersion    [SEPIA2_VERSIONINFO_LEN]        = "";
   char            cDescriptor    [SEPIA2_USB_STRDECR_LEN]        = "";
   char            cSepiaSerNo    [SEPIA2_SERIALNUMBER_LEN]       = "";
+  char            cGivenSerNo    [SEPIA2_SERIALNUMBER_LEN]       = "";
   char            cProductModel  [SEPIA2_PRODUCTMODEL_LEN]       = "";
+  char            cGivenProduct  [SEPIA2_PRODUCTMODEL_LEN]       = "";
   char            cFWVersion     [SEPIA2_VERSIONINFO_LEN]        = "";
   char            cFWErrCond     [SEPIA2_FW_ERRCOND_LEN]         = "";
   char            cFWErrPhase    [SEPIA2_FW_ERRPHASE_LEN]        = "";
@@ -84,11 +159,17 @@ int main (int argc, char* argv[])
   char            cHeadType      [SEPIA2_SLM_HEADTYPE_LEN]       = "";
   char            cSerialNumber  [SEPIA2_SERIALNUMBER_LEN]       = "";
   char            cSWSModuleType [SEPIA2_SWS_MODULETYPE_MAXLEN]  = "";
+  char            cTemp1         [65]                            = "";
+  char            cTemp2         [65]                            = "";
+  char            cBuffer        [65535]                         = "";
+  char            cPreamble      []                              = "\n     Following are system describing common infos,\n     the considerate support team of PicoQuant GmbH\n     demands for your qualified service request:\n\n    =================================================\n\n";
+  char            cCallingSW     []                              = "Demo-Program:   ReadAllDataByMSVCPP.exe\n";
   //
   long            lBurstChannels [SEPIA2_SOM_BURSTCHANNEL_COUNT] = {0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L};
   //
   int             iRestartOption                                 = SEPIA2_NO_RESTART;
-  int             iDevIdx                                        = 0;
+  int             iDevIdx                                        = -1;
+  int             iGivenDevIdx;
   //
   //
   int             iModuleCount;
@@ -106,14 +187,17 @@ int main (int argc, char* argv[])
   int             iSWSModuleType;
   //
   // byte
-  unsigned char   bNoWait = false;
-  unsigned char   bStayOpened = false;
-  unsigned char   bInteractive = false;
+  unsigned char   bUSBInstGiven = false;
+  unsigned char   bSerialGiven  = false;
+  unsigned char   bProductGiven = false;
+  unsigned char   bNoWait       = false;
+  unsigned char   bStayOpened   = false;
   unsigned char   bIsPrimary;
   unsigned char   bIsBackPlane;
   unsigned char   bHasUptimeCounter;
   unsigned char   bLock;
   unsigned char   bSLock;
+  unsigned char   bSynchronize;             // for SOM-D
   unsigned char   bPulseMode;
   unsigned char   bDivider;
   unsigned char   bPreSync;
@@ -121,19 +205,24 @@ int main (int argc, char* argv[])
   unsigned char   bOutEnable;
   unsigned char   bSyncEnable;
   unsigned char   bSyncInverse;
+  unsigned char   bFineDelayStepCount;      // for SOM-D
+  unsigned char   bDelayed;                 // for SOM-D
+  unsigned char   bForcedUndelayed;         // for SOM-D
+  unsigned char   bFineDelay;               // for SOM-D
+  unsigned char   bOutCombi;                // for SOM-D
+  unsigned char   bMaskedCombi;             // for SOM-D
   unsigned char   bTrigLevelEnabled;
   unsigned char   bIntensity;
-  //
+  unsigned char   bTBNdx;                   // for PPL 400
+ //
   // word
   unsigned short  wIntensity;
   unsigned short  wDivider;
-  //
-  unsigned char   bTBNdx;
-  unsigned short  wPAPml;
-  unsigned short  wRRPml;
-  unsigned short  wPSPml;
-  unsigned short  wRSPml; 
-  unsigned short  wWSPml;
+  unsigned short  wPAPml;                   // for PPL 400
+  unsigned short  wRRPml;                   // for PPL 400
+  unsigned short  wPSPml;                   // for PPL 400
+  unsigned short  wRSPml;                   // for PPL 400
+  unsigned short  wWSPml;                   // for PPL 400
   //
   float           fFrequency;
   float           fIntensity;
@@ -148,10 +237,12 @@ int main (int argc, char* argv[])
   unsigned long   ulActivePowerUp;
   unsigned long   ulScaledPowerUp;
   //
+  double          f64CoarseDelayStep;       // for SOM-D
+  double          f64CoarseDelay;           // for SOM-D
+  //
   T_Module_FWVers SWSFWVers;
   //
-  int i;
-  //
+  int i, j;
   //
   //
   printf (" called with %d Parameter%s:\n", argc-1, (argc>2)?"s":"");
@@ -163,8 +254,21 @@ int main (int argc, char* argv[])
       //
       if (0 == wcsncmp (pwc, L"-inst=", 6))
       {
-        iDevIdx = _wtoi (&(pwc[6]));
-        printf ("    -inst=%d\n", iDevIdx);
+        iGivenDevIdx = _wtoi (&(pwc[6]));
+        printf ("    -inst=%d\n", iGivenDevIdx);
+        bUSBInstGiven = true;
+      } else
+      if (0 == wcsncmp (pwc, L"-serial=", 8))
+      {
+        sprintf_s (cGivenSerNo, SEPIA2_SERIALNUMBER_LEN, "%S", &pwc[8]);
+        printf ("    -serial=%S\n", &pwc[8]);
+        bSerialGiven = (strlen (cGivenSerNo) > 0);
+      } else
+      if (0 == wcsncmp (pwc, L"-product=", 9))
+      {
+        sprintf_s (cGivenProduct, SEPIA2_PRODUCTMODEL_LEN, "%S", &pwc[9]);
+        printf ("    -product=\"%S\"\n", &pwc[9]);
+        bProductGiven = (strlen (cGivenProduct) > 0);
       } else
       if (0 == wcscmp (pwc, L"-stayopened"))
       {
@@ -181,11 +285,6 @@ int main (int argc, char* argv[])
         iRestartOption = SEPIA2_RESTART;
         printf ("    %S\n", argv[i]);
       } else
-      if (0 == wcscmp (pwc, L"-interactive"))
-      {
-        bInteractive = true;
-        printf ("    %S\n", argv[i]);
-      } else
       {
         printf ("    %S : unknown parameter!\n", argv[i]);
       }
@@ -195,8 +294,21 @@ int main (int argc, char* argv[])
       char* pc = (char*)&(argv[i][0]); 
       if (0 == strncmp (pc, "-inst=", 6))
       {
-        iDevIdx = atoi (&(pc[6]));
-        printf ("    -inst=%d\n", iDevIdx);
+        iGivenDevIdx = atoi (&(pc[6]));
+        printf ("    -inst=%d\n", iGivenDevIdx);
+        bUSBInstGiven = true;
+      } else
+      if (0 == strncmp (pc, "-serial=", 8))
+      {
+        strcpy_s (cGivenSerNo, SEPIA2_SERIALNUMBER_LEN, &argv[i][8]);
+        printf ("    -serial=%s\n", &argv[i][8]);
+        bSerialGiven = (strlen (cGivenSerNo) > 0);
+      } else
+      if (0 == strncmp (pc, "-product=", 9))
+      {
+        strcpy_s (cGivenProduct, SEPIA2_PRODUCTMODEL_LEN, &argv[i][9]);
+        printf ("    -product=%s\n", &argv[i][9]);
+        bProductGiven = (strlen (cGivenProduct) > 0);
       } else
       if (0 == strcmp (pc, "-stayopened"))
       {
@@ -213,17 +325,11 @@ int main (int argc, char* argv[])
         iRestartOption = SEPIA2_RESTART;
         printf ("    %s\n", argv[i]);
       } else
-      if (0 == strcmp (pc, "-interactive"))
-      {
-        bInteractive = true;
-        printf ("    %s\n", argv[i]);
-      } else
       {
         printf ("    %s : unknown parameter!\n", argv[i]);
       }
     }
   }
-
 
   printf ("\n\n     PQLaserDrv   Read ALL Values Demo : \n");
   printf ("    =================================================\n\n");
@@ -231,7 +337,7 @@ int main (int argc, char* argv[])
   // preliminaries: check library version
   //
   SEPIA2_LIB_GetVersion (cLibVersion);
-  printf ("     Lib-Version   = %s\n", cLibVersion);
+  printf ("     Lib-Version    = %s\n", cLibVersion);
 
   if (0 != strncmp (cLibVersion, LIB_VERSION_REFERENCE, LIB_VERSION_REFERENCE_COMPLEN))
   {
@@ -248,19 +354,45 @@ int main (int argc, char* argv[])
     printf ("\n");
   }
   //
-  // establish USB connection to sepia
+  // establish USB connection to the sepia first matching all given conditions
+  //
+  for (i = (bUSBInstGiven ? iGivenDevIdx : 0); i < (bUSBInstGiven ? iGivenDevIdx+1 : SEPIA2_MAX_USB_DEVICES); i++)
+  {
+    strcpy_s (cSepiaSerNo,   SEPIA2_SERIALNUMBER_LEN, "");
+    strcpy_s (cProductModel, SEPIA2_PRODUCTMODEL_LEN, "");
+    //
+    iRetVal = SEPIA2_USB_OpenGetSerNumAndClose (i, cProductModel, cSepiaSerNo);
+    if ( (iRetVal == SEPIA2_ERR_NO_ERROR) 
+      && (  (  (bSerialGiven && bProductGiven)
+            && (strcmp (cGivenSerNo,   cSepiaSerNo)   == 0)
+            && (strcmp (cGivenProduct, cProductModel) == 0)
+            )
+        ||  (  (!bSerialGiven != !bProductGiven)
+            && (  (strcmp (cGivenSerNo,   cSepiaSerNo)   == 0)
+               || (strcmp (cGivenProduct, cProductModel) == 0)
+               )
+            )
+        ||  ( !bSerialGiven && !bProductGiven) 
+          )
+        )
+    {
+      iDevIdx = bUSBInstGiven ? ((iGivenDevIdx == i) ? i : -1) : i;
+      break;
+    }
+  }
   //
   if ((iRetVal = SEPIA2_USB_OpenDevice (iDevIdx, cProductModel, cSepiaSerNo)) == SEPIA2_ERR_NO_ERROR)
   {
-    printf ("     Product Model = %s\n\n",     cProductModel);
+    printf ("     Product Model  = '%s'\n\n",     cProductModel);
     printf ("    =================================================\n\n");
     SEPIA2_FWR_GetVersion (iDevIdx, cFWVersion);
-    printf ("     FW-Version    = %s\n",     cFWVersion);
+    printf ("     FW-Version     = %s\n",     cFWVersion);
     //
+    printf ("     USB Index      = %d\n", iDevIdx);
     SEPIA2_USB_GetStrDescriptor  (iDevIdx, cDescriptor);
-    printf ("     Descriptor    = %s\n", cDescriptor);
-    printf ("     Serial Number = '%s'\n\n", cSepiaSerNo);
-    printf ("    =================================================\n\n\n");
+    printf ("     USB Descriptor = %s\n", cDescriptor);
+    printf ("     Serial Number  = '%s'\n\n", cSepiaSerNo);
+    printf ("    =================================================\n\n");
     //
     // get sepia's module map and initialise datastructures for all library functions
     // there are two different ways to do so:
@@ -293,10 +425,24 @@ int main (int argc, char* argv[])
         }
         else
         {
+          // just to show, what sepia2_lib knows about your system, try this:
+          SEPIA2_FWR_CreateSupportRequestText (iDevIdx, cPreamble, cCallingSW, 0, sizeof (cBuffer), cBuffer);
+          //
+          // for console output, we have to change the degree-character:
+          for (i=0; i < (int)strlen (cBuffer); i++)
+          {
+            if (cBuffer[i] == '°')
+            {
+              cBuffer[i] = '\xF8';
+            }
+          }
+          printf (cBuffer);
           //
           // scan sepia map module by module
+          // and iterate by iMapIdx for this approach.
           //
-          printf ("\n\n");
+          printf ("\n\n\n    =================================================\n\n\n\n");
+          //
           for (iMapIdx = 0; iMapIdx < iModuleCount; iMapIdx++)
           {
             SEPIA2_FWR_GetModuleInfoByMapIdx (iDevIdx, iMapIdx, &iSlotId, &bIsPrimary, &bIsBackPlane, &bHasUptimeCounter);
@@ -328,49 +474,9 @@ int main (int argc, char* argv[])
                 switch (iModuleType)
                 {
                   case SEPIA2OBJECT_SCM  :
-                  case SEPIA2OBJECT_SCX  :
-                    //
                     SEPIA2_SCM_GetLaserSoftLock (iDevIdx, iSlotId, &bSLock);
-                    printf ("                              laser softlock status : %slocked\n", (!bSLock? " un":" "));
-                    //
                     SEPIA2_SCM_GetLaserLocked   (iDevIdx, iSlotId, &bLock);
-                    printf ("                              laser     lock status : %slocked\n", (!bLock?  " un":" "));
-                    //
-                    // lock / softlock demonstration
-                    //
-                    // for the soft lock state,
-                    //   this demonstration should always produce the sequence "unlocked", "locked", "unlocked"
-                    //
-                    // for the lock state, (if inquired after a little time)
-                    //   the demonstration should produce threetimes "locked", if sepia is locked by key and
-                    //   the sequence "unlocked", "locked", "unlocked" else.
-                    //   if called too early, the function retrieves the "old" value which was previously set.
-                    //
-                    if (bInteractive)
-                    {
-                      printf ("\n\npress RETURN...\n");
-                      getchar ();
-                      //
-                      SEPIA2_SCM_SetLaserSoftLock (iDevIdx, iSlotId, SEPIA2_LASER_LOCKED);
-                      SEPIA2_SCM_GetLaserSoftLock (iDevIdx, iSlotId, &bSLock);
-                      printf ("                              laser softlock status : %slocked\n", (!bSLock? " un":" "));
-                      //
-                      Sleep (100);
-                      SEPIA2_SCM_GetLaserLocked   (iDevIdx, iSlotId, &bLock);
-                      printf ("                              laser     lock status : %slocked\n", (!bLock?  " un":" "));
-                      printf ("\n\npress RETURN...\n");
-                      getchar ();
-                      //
-                      SEPIA2_SCM_SetLaserSoftLock (iDevIdx, iSlotId, SEPIA2_LASER_UNLOCKED);
-                      SEPIA2_SCM_GetLaserSoftLock (iDevIdx, iSlotId, &bSLock);
-                      printf ("                              laser softlock status : %slocked\n", (!bSLock? " un":" "));
-                      //
-                      Sleep (100);
-                      SEPIA2_SCM_GetLaserLocked   (iDevIdx, iSlotId, &bLock);
-                      printf ("                              laser     lock status : %slocked\n", (!bLock?  " un":" "));
-                      printf ("\n\npress RETURN...\n");
-                      getchar ();
-                    }
+                    printf ("                              laser lock state   :    %slocked\n", (!(bLock || bSLock)? " un": (bLock != bSLock ? " hard" : " soft")));
                     printf ("\n");
                     //
                     break;
@@ -380,7 +486,14 @@ int main (int argc, char* argv[])
                   case SEPIA2OBJECT_SOMD :
                     for (iFreqTrigIdx = 0; ((iRetVal == SEPIA2_ERR_NO_ERROR) && (iFreqTrigIdx < SEPIA2_SOM_FREQ_TRIGMODE_COUNT)); iFreqTrigIdx++)
                     {
-                      iRetVal = SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, cFreqTrigMode);
+                      if (iModuleType == SEPIA2OBJECT_SOM)
+                      {
+                        iRetVal = SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, cFreqTrigMode);
+                      }
+                      else
+                      {
+                        iRetVal = SEPIA2_SOMD_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, cFreqTrigMode);
+                      }
                       if (iRetVal == SEPIA2_ERR_NO_ERROR)
                       {
                         if (iFreqTrigIdx == 0)
@@ -407,11 +520,34 @@ int main (int argc, char* argv[])
                     printf ("\n");
                     if (iRetVal == SEPIA2_ERR_NO_ERROR)
                     {
-                      if ((iRetVal = SEPIA2_SOM_GetFreqTrigMode (iDevIdx, iSlotId, &iFreqTrigIdx)) == SEPIA2_ERR_NO_ERROR)
+                      if (iModuleType == SEPIA2OBJECT_SOM)
                       {
-                        if ((iRetVal = SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, cFreqTrigMode)) == SEPIA2_ERR_NO_ERROR)
+                        iRetVal = SEPIA2_SOM_GetFreqTrigMode (iDevIdx, iSlotId, &iFreqTrigIdx);
+                      }
+                      else
+                      {
+                        iRetVal = SEPIA2_SOMD_GetFreqTrigMode (iDevIdx, iSlotId, &iFreqTrigIdx, &bSynchronize);
+                      }
+                      if (iRetVal == SEPIA2_ERR_NO_ERROR)
+                      {
+                        if (iModuleType == SEPIA2OBJECT_SOM)
+                        {
+                          iRetVal = SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, cFreqTrigMode);
+                        }
+                        else
+                        {
+                          iRetVal = SEPIA2_SOMD_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, cFreqTrigMode);
+                        }
+                        if (iRetVal == SEPIA2_ERR_NO_ERROR)
                         {
                           printf ("%47s  =     '%s'\n", "act. freq./trigm.", cFreqTrigMode);
+                          if ((iModuleType == SEPIA2OBJECT_SOMD) && (iFreqTrigIdx < SEPIA2_SOM_INT_OSC_A))
+                          {
+                            if (bSynchronize)
+                            {
+                              printf ("%47s        (synchronized,)\n", " ");
+                            }
+                          }
                           //
                           if (iModuleType == SEPIA2OBJECT_SOM)
                           {
@@ -428,10 +564,18 @@ int main (int argc, char* argv[])
                             printf ("%48s = %5d\n", "pre sync          ", bPreSync);
                             printf ("%48s = %5d\n", "masked sync pulses", bMaskSync);
                             //
-                            if ( (iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_RAISING)
+                            if ( (iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_RISING)
                               || (iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_FALLING))
                             {
-                              if ((iRetVal = SEPIA2_SOM_GetTriggerLevel (iDevIdx, iSlotId, &iTriggerMilliVolt)) == SEPIA2_ERR_NO_ERROR)
+                              if (iModuleType == SEPIA2OBJECT_SOM)
+                              {
+                                iRetVal = SEPIA2_SOM_GetTriggerLevel (iDevIdx, iSlotId, &iTriggerMilliVolt);
+                              }
+                              else
+                              {
+                                iRetVal = SEPIA2_SOMD_GetTriggerLevel (iDevIdx, iSlotId, &iTriggerMilliVolt);
+                              }
+                              if (iRetVal == SEPIA2_ERR_NO_ERROR)
                               {
                                 printf ("%47s  = %5d mV\n", "triggerlevel     ", iTriggerMilliVolt);
                               }
@@ -439,49 +583,81 @@ int main (int argc, char* argv[])
                             else
                             {
                               fFrequency  = (float)(atof(cFreqTrigMode)) * 1.0e6f;
-                              fFrequency /= bDivider;
-                              printf ("%47s  =    %11.3e msec\n", "oscillator period", 1000. / fFrequency);
-                              printf ("%50s    %11.3e kHz\n",      "i.e.",              fFrequency / 1000.);
+                              fFrequency /= wDivider;
+                              printf ("%47s  =  %s\n", "oscillator period", FormatEng (cTemp1, sizeof (cTemp1), 1.0 / fFrequency, 6, "s",  11, 3));
+                              printf ("%47s     %s\n", "i.e.",              FormatEng (cTemp1, sizeof (cTemp1), fFrequency,       6, "Hz", 12, 3));
                               printf ("\n");
                             }
                             if (iRetVal == SEPIA2_ERR_NO_ERROR)
                             {
-                              if ((iRetVal = SEPIA2_SOM_GetOutNSyncEnable (iDevIdx, iSlotId, &bOutEnable, &bSyncEnable, &bSyncInverse)) == SEPIA2_ERR_NO_ERROR)
+                              if (iModuleType == SEPIA2OBJECT_SOM)
+                              {
+                                iRetVal = SEPIA2_SOM_GetOutNSyncEnable (iDevIdx, iSlotId, &bOutEnable, &bSyncEnable, &bSyncInverse);
+                              }
+                              else
+                              {
+                                iRetVal = SEPIA2_SOMD_GetOutNSyncEnable (iDevIdx, iSlotId, &bOutEnable, &bSyncEnable, &bSyncInverse);
+                              }
+                              if (iRetVal == SEPIA2_ERR_NO_ERROR)
                               {
                                 printf ("%47s  =     %s\n\n", "sync mask form   ", (bSyncInverse ? "inverse" : "regular"));
-                                if (SEPIA2_ERR_NO_ERROR == (iRetVal = SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSlotId, 
-                                                                                                      &lBurstChannels[0], 
-                                                                                                      &lBurstChannels[1], 
-                                                                                                      &lBurstChannels[2], 
-                                                                                                      &lBurstChannels[3], 
-                                                                                                      &lBurstChannels[4], 
-                                                                                                      &lBurstChannels[5], 
-                                                                                                      &lBurstChannels[6], 
-                                                                                                      &lBurstChannels[7])))
+                                if (iModuleType == SEPIA2OBJECT_SOM)
                                 {
-                                  printf ("                              burst data     ch. |  out | burst len | sync\n");
-                                  printf ("                                            -----+------+-----------+------\n");
+                                  iRetVal = SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSlotId, &lBurstChannels[0], &lBurstChannels[1], &lBurstChannels[2], &lBurstChannels[3], &lBurstChannels[4], &lBurstChannels[5], &lBurstChannels[6], &lBurstChannels[7]);
+                                }
+                                else
+                                {
+                                  iRetVal = SEPIA2_SOMD_GetBurstLengthArray (iDevIdx, iSlotId, &lBurstChannels[0], &lBurstChannels[1], &lBurstChannels[2], &lBurstChannels[3], &lBurstChannels[4], &lBurstChannels[5], &lBurstChannels[6], &lBurstChannels[7]);
+                                }
+                                if (iRetVal == SEPIA2_ERR_NO_ERROR)
+                                {
+                                  printf ("%44s ch. | sync | burst len |  out\n", "burst data    ");
+                                  printf ("%44s-----+------+-----------+------\n", " ");
                                   //
-                                  for (i = 0, lBurstSum = 0; i < 8; i++)
+                                  for (i = 0, lBurstSum = 0; i < SEPIA2_SOM_BURSTCHANNEL_COUNT; i++)
                                   {
-                                    printf ("%46s%1d  |    %1d | %9d |    %1d\n", " ", i+1, ((bOutEnable >> i) & 1), lBurstChannels[i], ((bSyncEnable >> i) & 1));
+                                    printf ("%46s%1d  |    %1d | %9d |    %1d\n", " ", i+1, ((bSyncEnable >> i) & 1), lBurstChannels[i], ((bOutEnable >> i) & 1));
                                     lBurstSum += lBurstChannels[i];
                                   }
-                                  printf ("                                         --------+------+ += -------+------\n");
-                                  printf ("%41sHex/Sum | 0x%2.2X | %9d | 0x%2.2X\n", " ", bOutEnable, lBurstSum, bSyncEnable);
+                                  printf ("%41s--------+------+ +  -------+------\n", " ");
+                                  printf ("%41sHex/Sum | 0x%2.2X | =%8d | 0x%2.2X\n", " ", bSyncEnable, lBurstSum, bOutEnable);
                                   printf ("\n");
+                                  if ( (iFreqTrigIdx != SEPIA2_SOM_TRIGMODE_RISING)
+                                    && (iFreqTrigIdx != SEPIA2_SOM_TRIGMODE_FALLING))
+                                  {
+                                    fFrequency /= lBurstSum;
+                                    printf ("%47s  =  %s\n", "sequencer period",  FormatEng (cTemp1, sizeof (cTemp1), 1.0 / fFrequency, 6, "s",  11, 3));
+                                    printf ("%47s     %s\n", "i.e.",              FormatEng (cTemp1, sizeof (cTemp1), fFrequency,       6, "Hz", 12, 3));
+                                    printf ("\n");
+                                  }
+                                  if (iModuleType == SEPIA2OBJECT_SOMD)
+                                  {
+                                    iRetVal = SEPIA2_SOMD_GetDelayUnits (iDevIdx, iSlotId, &f64CoarseDelayStep, &bFineDelayStepCount);
+                                    printf ("%44s     | combiner |\n", " ");
+                                    printf ("%44s     | channels |\n", " ");
+                                    printf ("%44s out | 12345678 | delay\n", " ");
+                                    printf ("%44s-----+----------+------------------\n", " ");
+                                    for (j = 0; j < SEPIA2_SOM_BURSTCHANNEL_COUNT; j++)
+                                    {
+                                      iRetVal = SEPIA2_SOMD_GetSeqOutputInfos (iDevIdx, iSlotId, j, &bDelayed, &bForcedUndelayed, &bOutCombi, &bMaskedCombi, &f64CoarseDelay, &bFineDelay);
+                                      if (!bDelayed | bForcedUndelayed)
+                                      {
+                                        printf ("%46s%1d  | %s |\n", " ", j+1, IntToBin (cTemp1, sizeof (cTemp1), bOutCombi, SEPIA2_SOM_BURSTCHANNEL_COUNT, true, bMaskedCombi ? '1' : 'B', '_') );
+                                      }
+                                      else
+                                      {
+                                        printf ("%46s%1d  | %s |%s + %2da.u.\n", " ", j+1, IntToBin (cTemp1, sizeof (cTemp1), (1 << j), SEPIA2_SOM_BURSTCHANNEL_COUNT, true, 'D', '_'), FormatEng (cTemp2, sizeof (cTemp2), f64CoarseDelay * 1e-9, 4, "s", 9, 1, 0), bFineDelay);
+                                      }
+                                    }
+                                    printf ("\n");
+                                    printf ("%46s   = D: delayed burst,   no combi\n",   "combiner legend ");
+                                    printf ("%46s     B: combi burst, any non-zero\n",   " ");
+                                    printf ("%46s     1: 1st pulse,   any non-zero\n\n", " ");
+                                  }
                                 }
                               }
                             }
                           }
-                        }
-                        if ( (iFreqTrigIdx != SEPIA2_SOM_TRIGMODE_RAISING)
-                          && (iFreqTrigIdx != SEPIA2_SOM_TRIGMODE_FALLING))
-                        {
-                          fFrequency /= lBurstSum;
-                          printf ("%47s  =    %11.3e msec\n", "sequencer period ", 1000. / fFrequency);
-                          printf ("%50s    %11.3e kHz\n",      "i.e.",              fFrequency / 1000.);
-                          printf ("\n");
                         }
                       }
                     }
@@ -495,13 +671,13 @@ int main (int argc, char* argv[])
                       SEPIA2_SLM_DecodeFreqTrigMode (iFreqTrigIdx, cFrequency);
                       SEPIA2_SLM_DecodeHeadType     (iHead, cHeadType);
                       //
-                      printf ("%47s  =     '%s'\n",      "freq / trigmode  ", cFrequency);
-                      printf ("%47s  =     pulses %s\n", "pulsmode         ", (bPulseMode ? "enabled" : "disabled"));
-                      printf ("%47s  =     %s\n",        "headtype         ", cHeadType);
+                      printf ("%47s  =     '%s'\n",        "freq / trigmode  ", cFrequency);
+                      printf ("%47s  =     'pulses %s'\n", "pulsmode         ", (bPulseMode ? "enabled" : "disabled"));
+                      printf ("%47s  =     '%s'\n",        "headtype         ", cHeadType);
                     }
                     if ((iRetVal = SEPIA2_SLM_GetIntensityFineStep (iDevIdx, iSlotId, &wIntensity)) == SEPIA2_ERR_NO_ERROR)
                     {
-                      printf ("%47s  =    %5.1f%%\n",     "intensity        ", 0.1*wIntensity);
+                      printf ("%47s  =   %5.1f%%\n",     "intensity        ", 0.1*wIntensity);
                     }
                     printf ("\n");
                     break;
@@ -594,62 +770,32 @@ int main (int argc, char* argv[])
                       printf ("%47s  =  %6.1f%%\n",    "RSPml            ", 0.1 * wRSPml);
                       printf ("%47s  =  %6.1f%%\n",    "WSPml            ", 0.1 * wWSPml);
                     }
-                    printf ("\n");
                     break;
 
 
                   default : break;
                 }
-                //
-                if (iRetVal == SEPIA2_ERR_NO_ERROR)
-                {
-                  //
-                  if (bIsPrimary)
-                  {
-                    if (bHasUptimeCounter)
-                    {
-                      SEPIA2_FWR_GetUptimeInfoByMapIdx (iDevIdx, iMapIdx, &ulMainPowerUp, &ulActivePowerUp, &ulScaledPowerUp);
-                      PrintUptimers (ulMainPowerUp, ulActivePowerUp, ulScaledPowerUp);
-                    }
-                  }
-                  else
-                  {
-                    if ((iRetVal = SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, SEPIA2_SECONDARY_MODULE, &iModuleType)) == SEPIA2_ERR_NO_ERROR)
-                    {
-                      SEPIA2_COM_DecodeModuleType (iModuleType, cModulType);
-                      SEPIA2_COM_GetSerialNumber  (iDevIdx, iSlotId, SEPIA2_SECONDARY_MODULE, cSerialNumber);
-                      printf ("\n              secondary mod.  '%s'\n", cModulType);
-                      printf ("              serial number   '%s'\n\n", cSerialNumber);
-                      //
-                      if (bHasUptimeCounter)
-                      {
-                        SEPIA2_FWR_GetUptimeInfoByMapIdx (iDevIdx, iMapIdx, &ulMainPowerUp, &ulActivePowerUp, &ulScaledPowerUp);
-                        PrintUptimers (ulMainPowerUp, ulActivePowerUp, ulScaledPowerUp);
-                      }
-                    }
-                  }
-                }
               }
             }
-            if (iRetVal != SEPIA2_ERR_NO_ERROR)
+            //
+            if (iRetVal == SEPIA2_ERR_NO_ERROR)
             {
-              if (iRetVal == SEPIA2_ERR_LIB_REFERENCED_SLOT_IS_NOT_IN_USE)
+              //
+              if (!bIsPrimary)
               {
-                printf (" slot %3.3d :   empty\n\n", iSlotId);
-                iRetVal = SEPIA2_ERR_NO_ERROR;
-              }
-              else
-              {
-                if (iRetVal == SEPIA2_ERR_LIB_ILLEGAL_SLOT_NUMBER)
+                if ((iRetVal = SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, SEPIA2_SECONDARY_MODULE, &iModuleType)) == SEPIA2_ERR_NO_ERROR)
                 {
-                  printf (" slot %3.3d :   n/a\n\n", iSlotId);
-                  iRetVal = SEPIA2_ERR_NO_ERROR;
+                  SEPIA2_COM_DecodeModuleType (iModuleType, cModulType);
+                  SEPIA2_COM_GetSerialNumber  (iDevIdx, iSlotId, SEPIA2_SECONDARY_MODULE, cSerialNumber);
+                  printf ("\n              secondary mod.  '%s'\n", cModulType);
+                  printf ("              serial number   '%s'\n\n", cSerialNumber);
                 }
-                else
-                {
-                  SEPIA2_LIB_DecodeError (iRetVal, cErrString);
-                  printf (" slot %3.3d :   ERROR %5d:    '%s'\n\n", iSlotId, iRetVal, cErrString);
-                }                    
+              }
+              //
+              if (bHasUptimeCounter)
+              {
+                SEPIA2_FWR_GetUptimeInfoByMapIdx (iDevIdx, iMapIdx, &ulMainPowerUp, &ulActivePowerUp, &ulScaledPowerUp);
+                PrintUptimers (ulMainPowerUp, ulActivePowerUp, ulScaledPowerUp);
               }
             }
           }
@@ -696,6 +842,7 @@ int main (int argc, char* argv[])
 
   printf ("\n");
   //
+
   if (!bNoWait)
   {
     printf ("\npress RETURN... ");

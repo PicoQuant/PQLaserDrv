@@ -4,7 +4,7 @@
 //
 //-----------------------------------------------------------------------------
 //
-//  Exports the official error codes list Sepia2_lib V1.1.xx.336
+//  Exports the official list of error codes for Sepia2_lib V1.1.xx.412
 //
 //-----------------------------------------------------------------------------
 //  HISTORY:
@@ -34,7 +34,11 @@
 //                    version field 'MinorHighWord', e.g.:
 //                    V1.1.32.293 or V1.1.64.293, respectively
 //
-//  apo  08.07.14   additional error codes for SOM D Module (V1.1.xx.336)
+//  apo  08.07.14   additional error codes for SOMD Module (V1.1.xx.336)
+//
+//  apo  27.02.15   additional error codes for SOMD Module (V1.1.xx.403)
+//
+//  apo  04.03.15   additional symbol construction rules (V1.1.xx.407)
 //
 //-----------------------------------------------------------------------------
 //
@@ -44,6 +48,7 @@
   #define __SEPIA2_ERRORCODES_H__
 
   #define SEPIA2_ERR_NO_ERROR                                                            0   //  "no error"
+
   #define SEPIA2_ERR_FW_MEMORY_ALLOCATION_ERROR                                      -1001   //  "FW: memory allocation error"
   #define SEPIA2_ERR_FW_CRC_ERROR_WHILE_CHECKING_SCM_828_MODULE                      -1002   //  "FW: CRC error while checking SCM 828 module"
   #define SEPIA2_ERR_FW_CRC_ERROR_WHILE_CHECKING_BACKPLANE                           -1003   //  "FW: CRC error while checking backplane"
@@ -51,6 +56,7 @@
   #define SEPIA2_ERR_FW_MAPSIZE_ERROR                                                -1005   //  "FW: mapsize error"
   #define SEPIA2_ERR_FW_UNKNOWN_ERROR_PHASE                                          -1006   //  "FW: unknown error phase"
   #define SEPIA2_ERR_FW_ILLEGAL_MODULE_CHANGE                                        -1111   //  "FW: illegal module change"
+
   #define SEPIA2_ERR_USB_WRONG_DRIVER_VERSION                                        -2001   //  "USB: wrong driver version"
   #define SEPIA2_ERR_USB_OPEN_DEVICE_ERROR                                           -2002   //  "USB: open device error"
   #define SEPIA2_ERR_USB_DEVICE_BUSY                                                 -2003   //  "USB: device busy"
@@ -78,6 +84,7 @@
   #define SEPIA2_ERR_FRAM_IS_WRITE_PROTECTED                                         -2304   //  "FRAM: is write protected"
   #define SEPIA2_ERR_DCL_FILE_SPECIFIES_DIFFERENT_MODULETYPE                         -2305   //  "DCL: file specifies different moduletype"
   #define SEPIA2_ERR_DCL_FILE_SPECIFIES_DIFFERENT_SERIAL_NUMBER                      -2306   //  "DCL: file specifies different serial number"
+
   #define SEPIA2_ERR_I2C_INVALID_ARGUMENT                                            -3001   //  "I2C: invalid argument"
   #define SEPIA2_ERR_I2C_NO_ACKNOWLEDGE_ON_WRITE_ADRESSBYTE                          -3002   //  "I2C: no acknowledge on write adressbyte"
   #define SEPIA2_ERR_I2C_NO_ACKNOWLEDGE_ON_READ_ADRESSBYTE                           -3003   //  "I2C: no acknowledge on read adressbyte"
@@ -102,9 +109,10 @@
   #define SEPIA2_ERR_USB_NO_SUCH_PIPE                                                -3212   //  "USB: no such pipe"
   #define SEPIA2_ERR_USB_REGISTER_NOTIFICATION_FAILED                                -3213   //  "USB: register notification failed"
   #define SEPIA2_ERR_I2C_DEVICE_ERROR                                                -3256   //  "I2C: device error"
-  #define SEPIA2_ERR_LMP_ADC_TABLES_NOT_FOUND                                        -3501   //  "LMP: ADC tables not found"
-  #define SEPIA2_ERR_LMP_ADC_OVERFLOW                                                -3502   //  "LMP: ADC overflow"
-  #define SEPIA2_ERR_LMP_ADC_UNDERFLOW                                               -3503   //  "LMP: ADC underflow"
+  #define SEPIA2_ERR_LMP1_ADC_TABLES_NOT_FOUND                                       -3501   //  "LMP1: ADC tables not found"
+  #define SEPIA2_ERR_LMP1_ADC_OVERFLOW                                               -3502   //  "LMP1: ADC overflow"
+  #define SEPIA2_ERR_LMP1_ADC_UNDERFLOW                                              -3503   //  "LMP1: ADC underflow"
+
   #define SEPIA2_ERR_SCM_VOLTAGE_LIMITS_TABLE_NOT_FOUND                              -4001   //  "SCM: voltage limits table not found"
   #define SEPIA2_ERR_SCM_VOLTAGE_SCALING_LIST_NOT_FOUND                              -4002   //  "SCM: voltage scaling list not found"
   #define SEPIA2_ERR_SCM_REPEATEDLY_MEASURED_VOLTAGE_FAILURE                         -4003   //  "SCM: repeatedly measured voltage failure"
@@ -125,6 +133,7 @@
   #define SEPIA2_ERR_SCM_POWER_SUPPLY_LINE_6_VOLTAGE_TOO_HIGH                        -4026   //  "SCM: power supply line 6: voltage too high"
   #define SEPIA2_ERR_SCM_POWER_SUPPLY_LINE_7_VOLTAGE_TOO_HIGH                        -4027   //  "SCM: power supply line 7: voltage too high"
   #define SEPIA2_ERR_SCM_POWER_SUPPLY_LASER_TURNING_OFF_VOLTAGE_TOO_HIGH             -4030   //  "SCM: power supply laser turning-off-voltage too high"
+
   #define SEPIA2_ERR_SOM_INT_OSCILLATOR_S_FREQ_LIST_NOT_FOUND                        -5001   //  "SOM: int. oscillator's freq.-list not found"
   #define SEPIA2_ERR_SOM_TRIGGER_MODE_LIST_NOT_FOUND                                 -5002   //  "SOM: trigger mode list not found"
   #define SEPIA2_ERR_SOM_TRIGGER_LEVEL_NOT_FOUND                                     -5003   //  "SOM: trigger level not found"
@@ -136,6 +145,46 @@
   #define SEPIA2_ERR_SOM_ILLEGAL_FREQUENCY_DIVIDER                                   -5009   //  "SOM: illegal frequency divider (equal 0)"
   #define SEPIA2_ERR_SOM_ILLEGAL_PRESYNC                                             -5010   //  "SOM: illegal presync (greater than divider)"
   #define SEPIA2_ERR_SOM_ILLEGAL_BURST_LENGTH                                        -5011   //  "SOM: illegal burst length (>/= 2^24 or < 0)"
+  #define SEPIA2_ERR_SOM_AUX_IO_CTRL_NOT_FOUND                                       -5012   //  "SOM: AUX I/O control data not found"
+  #define SEPIA2_ERR_SOM_ILLEGAL_AUX_OUT_CTRL                                        -5013   //  "SOM: illegal AUX output control data"
+  #define SEPIA2_ERR_SOM_ILLEGAL_AUX_IN_CTRL                                         -5014   //  "SOM: illegal AUX input control data"
+  #define SEPIA2_ERR_SOMD_INT_OSCILLATOR_S_FREQ_LIST_NOT_FOUND                       -5051   //  "SOMD: int. oscillator's freq.-list not found"
+  #define SEPIA2_ERR_SOMD_TRIGGER_MODE_LIST_NOT_FOUND                                -5052   //  "SOMD: trigger mode list not found"
+  #define SEPIA2_ERR_SOMD_TRIGGER_LEVEL_NOT_FOUND                                    -5053   //  "SOMD: trigger level not found"
+  #define SEPIA2_ERR_SOMD_PREDIVIDER_PRETRIGGER_OR_TRIGGERMASK_NOT_FOUND             -5054   //  "SOMD: predivider, pretrigger or triggermask not found"
+  #define SEPIA2_ERR_SOMD_BURSTLENGTH_NOT_FOUND                                      -5055   //  "SOMD: burstlength not found"
+  #define SEPIA2_ERR_SOMD_OUTPUT_AND_SYNC_ENABLE_NOT_FOUND                           -5056   //  "SOMD: output and sync enable not found"
+  #define SEPIA2_ERR_SOMD_TRIGGER_LEVEL_OUT_OF_BOUNDS                                -5057   //  "SOMD: trigger level out of bounds"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_FREQUENCY_TRIGGERMODE                              -5058   //  "SOMD: illegal frequency / triggermode"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_FREQUENCY_DIVIDER                                  -5059   //  "SOMD: illegal frequency divider (equal 0)"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_PRESYNC                                            -5060   //  "SOMD: illegal presync (greater than divider)"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_BURST_LENGTH                                       -5061   //  "SOMD: illegal burst length (>/= 2^24 or < 0)"
+  #define SEPIA2_ERR_SOMD_AUX_IO_CTRL_NOT_FOUND                                      -5062   //  "SOMD: AUX I/O control data not found"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_AUX_OUT_CTRL                                       -5063   //  "SOMD: illegal AUX output control data"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_AUX_IN_CTRL                                        -5064   //  "SOMD: illegal AUX input control data"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_OUT_MUX_CTRL                                       -5071   //  "SOMD: illegal output multiplexer control data"
+  #define SEPIA2_ERR_SOMD_OUTPUT_DELAY_DATA_NOT_FOUND                                -5072   //  "SOMD: output delay data not found"
+  #define SEPIA2_ERR_SOMD_ILLEGAL_OUTPUT_DELAY_DATA                                  -5073   //  "SOMD: illegal output delay data"
+  #define SEPIA2_ERR_SOMD_DELAY_NOT_ALLOWED_IN_TRIGGER_MODE                          -5074   //  "SOMD: delay not allowed in current trigger mode"
+  #define SEPIA2_ERR_SOMD_DEVICE_INITIALIZING                                        -5075   //  "SOMD: device initializing"
+  #define SEPIA2_ERR_SOMD_DEVICE_BUSY                                                -5076   //  "SOMD: device busy"
+  #define SEPIA2_ERR_SOMD_PLL_NOT_LOCKED                                             -5077   //  "SOMD: PLL not locked"
+  #define SEPIA2_ERR_SOMD_FW_UPDATE_FAILED                                           -5080   //  "SOMD: firmware update failed"
+  #define SEPIA2_ERR_SOMD_FW_CRC_CHECK_FAILED                                        -5081   //  "SOMD: firmware CRC check failed"
+  #define SEPIA2_ERR_SOMD_HW_TRIGGERSOURCE_ERROR                                     -5101   //  "SOMD HW: triggersource error"
+  #define SEPIA2_ERR_SOMD_HW_SYCHRONIZE_NOW_ERROR                                    -5102   //  "SOMD HW: sychronize now error"
+  #define SEPIA2_ERR_SOMD_HW_SYNC_RANGE_ERROR                                        -5103   //  "SOMD HW: SYNC range error"
+  #define SEPIA2_ERR_SOMD_HW_ILLEGAL_OUT_MUX_CTRL                                    -5104   //  "SOMD HW: illegal output multiplexer control data"
+  #define SEPIA2_ERR_SOMD_HW_SET_DELAY_ERROR                                         -5105   //  "SOMD HW: set delay error"
+  #define SEPIA2_ERR_SOMD_HW_AUX_IO_COMMAND_ERROR                                    -5106   //  "SOMD HW: AUX I/O command error"
+  #define SEPIA2_ERR_SOMD_HW_PLL_NOT_STABLE                                          -5107   //  "SOMD HW: PLL not stable"
+  #define SEPIA2_ERR_SOMD_HW_BURST_LENGTH_ERROR                                      -5108   //  "SOMD HW: burst length error"
+  #define SEPIA2_ERR_SOMD_HW_OUT_MUX_COMMAND_ERROR                                   -5109   //  "SOMD HW: output multiplexer command error"
+  #define SEPIA2_ERR_SOMD_HW_COARSE_DELAY_SET_ERROR                                  -5110   //  "SOMD HW: coarse delay set error"
+  #define SEPIA2_ERR_SOMD_HW_FINE_DELAY_SET_ERROR                                    -5111   //  "SOMD HW: fine delay set error"
+  #define SEPIA2_ERR_SOMD_HW_FW_EPROM_ERROR                                          -5112   //  "SOMD HW: firmware EPROM error"
+  #define SEPIA2_ERR_SOMD_HW_CRC_ERROR_ON_WRITING_FIRMWARE                           -5113   //  "SOMD HW: CRC error on writing firmware"
+
   #define SEPIA2_ERR_SLM_ILLEGAL_FREQUENCY_TRIGGERMODE                               -6001   //  "SLM: illegal frequency / triggermode"
   #define SEPIA2_ERR_SLM_ILLEGAL_INTENSITY                                           -6002   //  "SLM: illegal intensity (> 100% or < 0%)"
   #define SEPIA2_ERR_SLM_ILLEGAL_HEAD_TYPE                                           -6003   //  "SLM: illegal head type"
@@ -153,11 +202,13 @@
   #define SEPIA2_ERR_SWM_ILLEGAL_TABLENAME                                           -6709   //  "SWM: illegal tablename"
   #define SEPIA2_ERR_SWM_ILLEGAL_TABLE_INDEX                                         -6710   //  "SWM: illegal table index"
   #define SEPIA2_ERR_SWM_ILLEGAL_TABLE_FIELD                                         -6711   //  "SWM: illegal table field"
+
   #define SEPIA2_ERR_SPM_ILLEGAL_INPUT_VALUE                                         -7001   //  "Solea SPM: illegal input value"
   #define SEPIA2_ERR_SPM_VALUE_OUT_OF_BOUNDS                                         -7006   //  "Solea SPM: value out of bounds"
   #define SEPIA2_ERR_SPM_FW_OUT_OF_MEMORY                                            -7011   //  "Solea SPM FW: out of memory"
   #define SEPIA2_ERR_SPM_FW_UPDATE_FAILED                                            -7013   //  "Solea SPM FW: update failed"
   #define SEPIA2_ERR_SPM_FW_CRC_CHECK_FAILED                                         -7014   //  "Solea SPM FW: CRC check failed"
+  #define SEPIA2_ERR_SPM_FW_FLASH_DELETION_FAILED                                    -7015   //  "Solea SPM FW: Flash deletion failed"
   #define SEPIA2_ERR_SPM_FW_FILE_OPEN_ERROR                                          -7021   //  "Solea SPM FW: file open error"
   #define SEPIA2_ERR_SPM_FW_FILE_READ_ERROR                                          -7022   //  "Solea SPM FW: file read error"
   #define SEPIA2_ERR_SSM_SCALING_TABLES_NOT_FOUND                                    -7051   //  "Solea SSM: scaling tables not found"
@@ -273,6 +324,7 @@
   #define SEPIA2_ERR_SWS_HW_MODULE_2_MOTOR_3_TIMEOUT                                 -7434   //  "Solea SWS HW: module 2, motor 3: timeout"
   #define SEPIA2_ERR_SWS_HW_MODULE_2_MOTOR_3_FLASH_WRITE_ERROR                       -7435   //  "Solea SWS HW: module 2, motor 3: flash write error"
   #define SEPIA2_ERR_SWS_HW_MODULE_2_MOTOR_3_OUT_OF_BOUNDS                           -7436   //  "Solea SWS HW: module 2, motor 3: out of bounds"
+
   #define SEPIA2_ERR_LIB_TOO_MANY_USB_HANDLES                                        -9001   //  "LIB: too many USB handles"
   #define SEPIA2_ERR_LIB_ILLEGAL_DEVICE_INDEX                                        -9002   //  "LIB: illegal device index"
   #define SEPIA2_ERR_LIB_USB_DEVICE_OPEN_ERROR                                       -9003   //  "LIB: USB device open error"
@@ -290,9 +342,10 @@
   #define SEPIA2_ERR_HIS_IS_NO_SOLEA_SSM_MODULE                                      -9015   //  "LIB: this is no Solea SSM module"
   #define SEPIA2_ERR_HIS_IS_NO_SOLEA_SWS_MODULE                                      -9016   //  "LIB: this is no Solea SWS module"
   #define SEPIA2_ERR_HIS_IS_NO_SOLEA_SPM_MODULE                                      -9017   //  "LIB: this is no Solea SPM module"
-  #define SEPIA2_ERR_LIB_THIS_IS_NO_LASER_TEST_SITE_MODULE                           -9018   //  "LIB: this is no laser test site module"
+  #define SEPIA2_ERR_LIB_THIS_IS_NO_LMP1                                             -9018   //  "LIB: this is no LMP1 (metermodule w. shuttercontrol)"
   #define SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE                                 -9019   //  "LIB: this is no SOM 828 D module"
   #define SEPIA2_ERR_LIB_NO_MAP_FOUND                                                -9020   //  "LIB: no map found"
+  #define SEPIA2_ERR_LIB_THIS_IS_NO_LMP8                                             -9021   //  "LIB: this is no LMP8 (eightfold metermodule)"
   #define SEPIA2_ERR_LIB_DEVICE_CHANGED_RE_INITIALISE_USB_DEVICE_LIST                -9025   //  "LIB: device changed, re-initialise USB device list"
   #define SEPIA2_ERR_LIB_INAPPROPRIATE_USB_DEVICE                                    -9026   //  "LIB: inappropriate USB device"
   #define SEPIA2_ERR_LIB_WRONG_USB_DRIVER_VERSION                                    -9090   //  "LIB: wrong USB driver version"

@@ -4,7 +4,7 @@
 //
 //-----------------------------------------------------------------------------
 //
-//  Exports the official error codes list Sepia2_lib V1.1.xx.336
+//  Exports the official list of error codes for Sepia2_lib V1.1.xx.450
 //
 //-----------------------------------------------------------------------------
 //  HISTORY:
@@ -16,16 +16,23 @@
 //
 //  apo  03.03.06   re-added lost error message -9005 (V1.0.1.3)
 //
-//  apo  12.02.07   introduced SML Multilaser Module (V1.0.2.0)
+//  apo  12.02.07   introduced SML multilaser module (V1.0.2.0)
 //
-//  apo  02.12.09   introduced SWM Pulsar Waveform Module (V1.0.2.1)
+//  apo  02.12.09   introduced PPL400 SWM waveform module (V1.0.2.1)
 //
-//  apo  12.10.12   introduced Solea SSM seed-laser module,
-//                    Solea SWS wavelength selector module (V1.0.3.x)
+//  apo  19.04.10   incorporated into EasyTau-SW   (V1.0.2.0)
 //
-//  apo  12.06.13   introduced Solea SPM pump control module (V1.0.3.x)
+//  apo  04.02.11   incorporated into Submarine-SW (V1.0.2.0)
 //
-//  apo  03.01.14   additional error codes for Solea SWS Module (V1.0.3.x)
+//  apo  16.08.12   introduced Solea SWS wavelength selector module (V1.0.3.x)
+//
+//  apo  12.10.12   introduced Solea SSM seedlaser module (V1.0.3.x)
+//
+//  apo  21.01.13   introduced new USB error values (as created by MW)
+//
+//  apo  12.06.13   introduced Solea SPM pumpcontrol module (V1.0.3.x)
+//
+//  apo  03.01.14   additional error codes for Solea SWS module (V1.0.3.x)
 //
 //  apo  26.02.14   raised library version to 1.1 due to API changes
 //                    on the device open interfaces
@@ -36,6 +43,10 @@
 //
 //  apo  08.07.14   additional error codes for SOMD Module (V1.1.xx.336)
 //
+//  apo  27.02.15   additional error codes for SOMD Module (V1.1.xx.403)
+//
+//  apo  04.03.15   additional symbol construction rules (V1.1.xx.407)
+//
 //-----------------------------------------------------------------------------
 //
 
@@ -44,14 +55,16 @@ unit Sepia2_ErrorCodes;
 interface
 
   const
-
+      
     SEPIA2_ERR_NO_ERROR                                                     =      0;  //  "no error"
+
     SEPIA2_ERR_FW_MEMORY_ALLOCATION_ERROR                                   =  -1001;  //  "FW: memory allocation error"
     SEPIA2_ERR_FW_CRC_ERROR_WHILE_CHECKING_SCM_828_MODULE                   =  -1002;  //  "FW: CRC error while checking SCM 828 module"
     SEPIA2_ERR_FW_CRC_ERROR_WHILE_CHECKING_BACKPLANE                        =  -1003;  //  "FW: CRC error while checking backplane"
     SEPIA2_ERR_FW_CRC_ERROR_WHILE_CHECKING_MODULE                           =  -1004;  //  "FW: CRC error while checking module"
     SEPIA2_ERR_FW_MAPSIZE_ERROR                                             =  -1005;  //  "FW: mapsize error"
     SEPIA2_ERR_FW_UNKNOWN_ERROR_PHASE                                       =  -1006;  //  "FW: unknown error phase"
+    SEPIA2_ERR_FW_WRONG_WORKINGMODE                                         =  -1007;  //  "FW: wrong workingmode"
     SEPIA2_ERR_FW_ILLEGAL_MODULE_CHANGE                                     =  -1111;  //  "FW: illegal module change"
 
     SEPIA2_ERR_USB_WRONG_DRIVER_VERSION                                     =  -2001;  //  "USB: wrong driver version"
@@ -69,14 +82,12 @@ interface
     SEPIA2_ERR_FRAM_BLOCKREAD_ERROR                                         =  -2021;  //  "FRAM: blockread error"
     SEPIA2_ERR_FRAM_CRC_BLOCKCHECK_ERROR                                    =  -2022;  //  "FRAM: CRC blockcheck error"
     SEPIA2_ERR_RAM_BLOCK_ALLOCATION_ERROR                                   =  -2023;  //  "RAM: block allocation error"
-
     SEPIA2_ERR_I2C_INITIALISING_COMMAND_EXECUTION_ERROR                     =  -2100;  //  "I2C: initialising command execution error"
     SEPIA2_ERR_I2C_FETCHING_INITIALISING_COMMANDS_ERROR                     =  -2101;  //  "I2C: fetching initialising commands error"
     SEPIA2_ERR_I2C_WRITING_INITIALISING_COMMANDS_ERROR                      =  -2102;  //  "I2C: writing initialising commands error"
     SEPIA2_ERR_I2C_MODULE_CALIBRATING_ERROR                                 =  -2200;  //  "I2C: module calibrating error"
     SEPIA2_ERR_I2C_FETCHING_CALIBRATING_COMMANDS_ERROR                      =  -2201;  //  "I2C: fetching calibrating commands error"
     SEPIA2_ERR_I2C_WRITING_CALIBRATING_COMMANDS_ERROR                       =  -2202;  //  "I2C: writing calibrating commands error"
-
     SEPIA2_ERR_DCL_FILE_OPEN_ERROR                                          =  -2301;  //  "DCL: file open error"
     SEPIA2_ERR_DCL_WRONG_FILE_LENGTH                                        =  -2302;  //  "DCL: wrong file length"
     SEPIA2_ERR_DCL_FILE_READ_ERROR                                          =  -2303;  //  "DCL: file read error"
@@ -94,7 +105,6 @@ interface
     SEPIA2_ERR_I_O_FILE_ERROR                                               =  -3009;  //  "I/O: file error"
     SEPIA2_ERR_I2C_MULTIPLEXER_ERROR                                        =  -3014;  //  "I2C: multiplexer error"
     SEPIA2_ERR_I2C_MULTIPLEXER_PATH_ERROR                                   =  -3015;  //  "I2C: multiplexer path error"
-
     SEPIA2_ERR_USB_INVALID_ARGUMENT                                         =  -3201;  //  "USB: invalid argument"
     SEPIA2_ERR_USB_DEVICE_STILL_OPEN                                        =  -3202;  //  "USB: device still open"
     SEPIA2_ERR_USB_NO_MEMORY                                                =  -3203;  //  "USB: no memory"
@@ -109,10 +119,9 @@ interface
     SEPIA2_ERR_USB_NO_SUCH_PIPE                                             =  -3212;  //  "USB: no such pipe"
     SEPIA2_ERR_USB_REGISTER_NOTIFICATION_FAILED                             =  -3213;  //  "USB: register notification failed"
     SEPIA2_ERR_I2C_DEVICE_ERROR                                             =  -3256;  //  "I2C: device error"
-
-    SEPIA2_ERR_LMP_ADC_TABLES_NOT_FOUND                                     =  -3501;  //  "LMP: ADC tables not found"
-    SEPIA2_ERR_LMP_ADC_OVERFLOW                                             =  -3502;  //  "LMP: ADC overflow"
-    SEPIA2_ERR_LMP_ADC_UNDERFLOW                                            =  -3503;  //  "LMP: ADC underflow"
+    SEPIA2_ERR_LMP1_ADC_TABLES_NOT_FOUND                                    =  -3501;  //  "LMP1: ADC tables not found"
+    SEPIA2_ERR_LMP1_ADC_OVERFLOW                                            =  -3502;  //  "LMP1: ADC overflow"
+    SEPIA2_ERR_LMP1_ADC_UNDERFLOW                                           =  -3503;  //  "LMP1: ADC underflow"
 
     SEPIA2_ERR_SCM_VOLTAGE_LIMITS_TABLE_NOT_FOUND                           =  -4001;  //  "SCM: voltage limits table not found"
     SEPIA2_ERR_SCM_VOLTAGE_SCALING_LIST_NOT_FOUND                           =  -4002;  //  "SCM: voltage scaling list not found"
@@ -149,18 +158,52 @@ interface
     SEPIA2_ERR_SOM_AUX_IO_CTRL_NOT_FOUND                                    =  -5012;  //  "SOM: AUX I/O control data not found"
     SEPIA2_ERR_SOM_ILLEGAL_AUX_OUT_CTRL                                     =  -5013;  //  "SOM: illegal AUX output control data"
     SEPIA2_ERR_SOM_ILLEGAL_AUX_IN_CTRL                                      =  -5014;  //  "SOM: illegal AUX input control data"
-    SEPIA2_ERR_SOM_ILLEGAL_OUT_MUX_CTRL                                     =  -5015;  //  "SOM: illegal output multiplexer control data"
-    SEPIA2_ERR_SOM_DELAY_INFO_NOT_FOUND                                     =  -5016;  //  "SOM: output delay data not found"
-    SEPIA2_ERR_SOM_ILLEGAL_DELAY_DATA                                       =  -5017;  //  "SOM: illegal output delay data"
+    SEPIA2_ERR_SOMD_INT_OSCILLATOR_S_FREQ_LIST_NOT_FOUND                    =  -5051;  //  "SOMD: int. oscillator's freq.-list not found"
+    SEPIA2_ERR_SOMD_TRIGGER_MODE_LIST_NOT_FOUND                             =  -5052;  //  "SOMD: trigger mode list not found"
+    SEPIA2_ERR_SOMD_TRIGGER_LEVEL_NOT_FOUND                                 =  -5053;  //  "SOMD: trigger level not found"
+    SEPIA2_ERR_SOMD_PREDIVIDER_PRETRIGGER_OR_TRIGGERMASK_NOT_FOUND          =  -5054;  //  "SOMD: predivider, pretrigger or triggermask not found"
+    SEPIA2_ERR_SOMD_BURSTLENGTH_NOT_FOUND                                   =  -5055;  //  "SOMD: burstlength not found"
+    SEPIA2_ERR_SOMD_OUTPUT_AND_SYNC_ENABLE_NOT_FOUND                        =  -5056;  //  "SOMD: output and sync enable not found"
+    SEPIA2_ERR_SOMD_TRIGGER_LEVEL_OUT_OF_BOUNDS                             =  -5057;  //  "SOMD: trigger level out of bounds"
+    SEPIA2_ERR_SOMD_ILLEGAL_FREQUENCY_TRIGGERMODE                           =  -5058;  //  "SOMD: illegal frequency / triggermode"
+    SEPIA2_ERR_SOMD_ILLEGAL_FREQUENCY_DIVIDER                               =  -5059;  //  "SOMD: illegal frequency divider (equal 0)"
+    SEPIA2_ERR_SOMD_ILLEGAL_PRESYNC                                         =  -5060;  //  "SOMD: illegal presync (greater than divider)"
+    SEPIA2_ERR_SOMD_ILLEGAL_BURST_LENGTH                                    =  -5061;  //  "SOMD: illegal burst length (>/= 2^24 or < 0)"
+    SEPIA2_ERR_SOMD_AUX_IO_CTRL_NOT_FOUND                                   =  -5062;  //  "SOMD: AUX I/O control data not found"
+    SEPIA2_ERR_SOMD_ILLEGAL_AUX_OUT_CTRL                                    =  -5063;  //  "SOMD: illegal AUX output control data"
+    SEPIA2_ERR_SOMD_ILLEGAL_AUX_IN_CTRL                                     =  -5064;  //  "SOMD: illegal AUX input control data"
+    SEPIA2_ERR_SOMD_ILLEGAL_OUT_MUX_CTRL                                    =  -5071;  //  "SOMD: illegal output multiplexer control data"
+    SEPIA2_ERR_SOMD_OUTPUT_DELAY_DATA_NOT_FOUND                             =  -5072;  //  "SOMD: output delay data not found"
+    SEPIA2_ERR_SOMD_ILLEGAL_OUTPUT_DELAY_DATA                               =  -5073;  //  "SOMD: illegal output delay data"
+    SEPIA2_ERR_SOMD_DELAY_NOT_ALLOWED_IN_TRIGGER_MODE                       =  -5074;  //  "SOMD: delay not allowed in current trigger mode"
+    SEPIA2_ERR_SOMD_DEVICE_INITIALIZING                                     =  -5075;  //  "SOMD: device initializing"
+    SEPIA2_ERR_SOMD_DEVICE_BUSY                                             =  -5076;  //  "SOMD: device busy"
+    SEPIA2_ERR_SOMD_PLL_NOT_LOCKED                                          =  -5077;  //  "SOMD: PLL not locked"
+    SEPIA2_ERR_SOMD_FW_UPDATE_FAILED                                        =  -5080;  //  "SOMD: firmware update failed"
+    SEPIA2_ERR_SOMD_FW_CRC_CHECK_FAILED                                     =  -5081;  //  "SOMD: firmware CRC check failed"
+    SEPIA2_ERR_SOMD_HW_TRIGGERSOURCE_ERROR                                  =  -5101;  //  "SOMD HW: triggersource error"
+    SEPIA2_ERR_SOMD_HW_SYCHRONIZE_NOW_ERROR                                 =  -5102;  //  "SOMD HW: sychronize now error"
+    SEPIA2_ERR_SOMD_HW_SYNC_RANGE_ERROR                                     =  -5103;  //  "SOMD HW: SYNC range error"
+    SEPIA2_ERR_SOMD_HW_ILLEGAL_OUT_MUX_CTRL                                 =  -5104;  //  "SOMD HW: illegal output multiplexer control data"
+    SEPIA2_ERR_SOMD_HW_SET_DELAY_ERROR                                      =  -5105;  //  "SOMD HW: set delay error"
+    SEPIA2_ERR_SOMD_HW_AUX_IO_COMMAND_ERROR                                 =  -5106;  //  "SOMD HW: AUX I/O command error"
+    SEPIA2_ERR_SOMD_HW_PLL_NOT_STABLE                                       =  -5107;  //  "SOMD HW: PLL not stable"
+    SEPIA2_ERR_SOMD_HW_BURST_LENGTH_ERROR                                   =  -5108;  //  "SOMD HW: burst length error"
+    SEPIA2_ERR_SOMD_HW_OUT_MUX_COMMAND_ERROR                                =  -5109;  //  "SOMD HW: output multiplexer command error"
+    SEPIA2_ERR_SOMD_HW_COARSE_DELAY_SET_ERROR                               =  -5110;  //  "SOMD HW: coarse delay set error"
+    SEPIA2_ERR_SOMD_HW_FINE_DELAY_SET_ERROR                                 =  -5111;  //  "SOMD HW: fine delay set error"
+    SEPIA2_ERR_SOMD_HW_FW_EPROM_ERROR                                       =  -5112;  //  "SOMD HW: firmware EPROM error"
+    SEPIA2_ERR_SOMD_HW_CRC_ERROR_ON_WRITING_FIRMWARE                        =  -5113;  //  "SOMD HW: CRC error on writing firmware"
+    SEPIA2_ERR_SOMD_HW_CALIBRATION_DATA_NOT_FOUND                           =  -5114;  //  "SOMD HW: calibration data not found");
+    SEPIA2_ERR_SOMD_HW_WRONG_EXTERNAL_FREQUENCY                             =  -5115;  //  "SOMD HW: wrong external frequency");
+    SEPIA2_ERR_SOMD_HW_EXTERNAL_FREQUENCY_NOT_STABLE                        =  -5116;  //  "SOMD HW: external frequency not stable");
 
     SEPIA2_ERR_SLM_ILLEGAL_FREQUENCY_TRIGGERMODE                            =  -6001;  //  "SLM: illegal frequency / triggermode"
     SEPIA2_ERR_SLM_ILLEGAL_INTENSITY                                        =  -6002;  //  "SLM: illegal intensity (> 100% or < 0%)"
     SEPIA2_ERR_SLM_ILLEGAL_HEAD_TYPE                                        =  -6003;  //  "SLM: illegal head type"
-
     SEPIA2_ERR_SML_ILLEGAL_INTENSITY                                        =  -6501;  //  "SML: illegal intensity (> 100% or < 0%)"
     SEPIA2_ERR_SML_POWER_SCALE_TABLES_NOT_FOUND                             =  -6502;  //  "SML: power scale tables not found"
     SEPIA2_ERR_SML_ILLEGAL_HEAD_TYPE                                        =  -6503;  //  "SML: illegal head type"
-
     SEPIA2_ERR_SWM_CALIBRATION_TABLES_NOT_FOUND                             =  -6701;  //  "SWM: calibration tables not found"
     SEPIA2_ERR_SWM_ILLEGAL_CURVE_INDEX                                      =  -6702;  //  "SWM: illegal curve index"
     SEPIA2_ERR_SWM_ILLEGAL_TIMEBASE_RANGE_INDEX                             =  -6703;  //  "SWM: illegal timebase range index"
@@ -172,23 +215,23 @@ interface
     SEPIA2_ERR_SWM_ILLEGAL_TABLENAME                                        =  -6709;  //  "SWM: illegal tablename"
     SEPIA2_ERR_SWM_ILLEGAL_TABLE_INDEX                                      =  -6710;  //  "SWM: illegal table index"
     SEPIA2_ERR_SWM_ILLEGAL_TABLE_FIELD                                      =  -6711;  //  "SWM: illegal table field"
+    SEPIA2_ERR_SWM_EXT_ATTENUATION_NOT_FOUND                                =  -6712;  //  "SWM: ext. attenuation not found"
+    SEPIA2_ERR_SWM_ILLEGAL_ATTENUATION_VALUE                                =  -6713;  //  "SWM: illegal attenuation value"
 
     SEPIA2_ERR_SPM_ILLEGAL_INPUT_VALUE                                      =  -7001;  //  "Solea SPM: illegal input value"
     SEPIA2_ERR_SPM_VALUE_OUT_OF_BOUNDS                                      =  -7006;  //  "Solea SPM: value out of bounds"
     SEPIA2_ERR_SPM_FW_OUT_OF_MEMORY                                         =  -7011;  //  "Solea SPM FW: out of memory"
     SEPIA2_ERR_SPM_FW_UPDATE_FAILED                                         =  -7013;  //  "Solea SPM FW: update failed"
     SEPIA2_ERR_SPM_FW_CRC_CHECK_FAILED                                      =  -7014;  //  "Solea SPM FW: CRC check failed"
-    SEPIA2_ERR_SPM_FW_ERROR_ON_FLASH_DELETION                               =  -7015;  //  "Solea SPM FW: error on flash deletion"
+    SEPIA2_ERR_SPM_FW_FLASH_DELETION_FAILED                                 =  -7015;  //  "Solea SPM FW: Flash deletion failed"
     SEPIA2_ERR_SPM_FW_FILE_OPEN_ERROR                                       =  -7021;  //  "Solea SPM FW: file open error"
     SEPIA2_ERR_SPM_FW_FILE_READ_ERROR                                       =  -7022;  //  "Solea SPM FW: file read error"
-
     SEPIA2_ERR_SSM_SCALING_TABLES_NOT_FOUND                                 =  -7051;  //  "Solea SSM: scaling tables not found"
     SEPIA2_ERR_SSM_ILLEGAL_TRIGGER_MODE                                     =  -7052;  //  "Solea SSM: illegal trigger mode"
     SEPIA2_ERR_SSM_ILLEGAL_TRIGGER_LEVEL_VALUE                              =  -7053;  //  "Solea SSM: illegal trigger level value"
     SEPIA2_ERR_SSM_ILLEGAL_CORRECTION_VALUE                                 =  -7054;  //  "Solea SSM: illegal correction value"
     SEPIA2_ERR_SSM_TRIGGER_DATA_NOT_FOUND                                   =  -7055;  //  "Solea SSM: trigger data not found"
     SEPIA2_ERR_SSM_CORRECTION_DATA_COMMAND_NOT_FOUND                        =  -7056;  //  "Solea SSM: correction data command not found"
-
     SEPIA2_ERR_SWS_SCALING_TABLES_NOT_FOUND                                 =  -7101;  //  "Solea SWS: scaling tables not found"
     SEPIA2_ERR_SWS_ILLEGAL_HW_MODULETYPE                                    =  -7102;  //  "Solea SWS: illegal HW moduletype"
     SEPIA2_ERR_SWS_MODULE_NOT_FUNCTIONAL                                    =  -7103;  //  "Solea SWS: module not functional"
@@ -196,7 +239,6 @@ interface
     SEPIA2_ERR_SWS_ILLEGAL_BANDWIDTH                                        =  -7105;  //  "Solea SWS: illegal bandwidth"
     SEPIA2_ERR_SWS_VALUE_OUT_OF_BOUNDS                                      =  -7106;  //  "Solea SWS: value out of bounds"
     SEPIA2_ERR_SWS_MODULE_BUSY                                              =  -7107;  //  "Solea SWS: module busy"
-
     SEPIA2_ERR_SWS_FW_WRONG_COMPONENT_ANSWERING                             =  -7109;  //  "Solea SWS FW: wrong component answering"
     SEPIA2_ERR_SWS_FW_UNKNOWN_HW_MODULETYPE                                 =  -7110;  //  "Solea SWS FW: unknown HW moduletype"
     SEPIA2_ERR_SWS_FW_OUT_OF_MEMORY                                         =  -7111;  //  "Solea SWS FW: out of memory"
@@ -315,15 +357,18 @@ interface
     SEPIA2_ERR_HIS_IS_NO_SOLEA_SSM_MODULE                                   =  -9015;  //  "LIB: this is no Solea SSM module"
     SEPIA2_ERR_HIS_IS_NO_SOLEA_SWS_MODULE                                   =  -9016;  //  "LIB: this is no Solea SWS module"
     SEPIA2_ERR_HIS_IS_NO_SOLEA_SPM_MODULE                                   =  -9017;  //  "LIB: this is no Solea SPM module"
-    SEPIA2_ERR_LIB_THIS_IS_NO_LASER_TEST_SITE_MODULE                        =  -9018;  //  "LIB: this is no laser test site module"
+    SEPIA2_ERR_LIB_THIS_IS_NO_LMP1                                          =  -9018;  //  "LIB: this is no LMP1 (metermodule w. shuttercontrol)"
     SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE                              =  -9019;  //  "LIB: this is no SOM 828 D module"
     SEPIA2_ERR_LIB_NO_MAP_FOUND                                             =  -9020;  //  "LIB: no map found"
+    SEPIA2_ERR_LIB_THIS_IS_NO_LMP8                                          =  -9021;  //  "LIB: this is no LMP8 (eightfold metermodule)"
     SEPIA2_ERR_LIB_DEVICE_CHANGED_RE_INITIALISE_USB_DEVICE_LIST             =  -9025;  //  "LIB: device changed, re-initialise USB device list"
     SEPIA2_ERR_LIB_INAPPROPRIATE_USB_DEVICE                                 =  -9026;  //  "LIB: inappropriate USB device"
     SEPIA2_ERR_LIB_WRONG_USB_DRIVER_VERSION                                 =  -9090;  //  "LIB: wrong USB driver version"
     SEPIA2_ERR_LIB_UNKNOWN_FUNCTION                                         =  -9900;  //  "LIB: unknown function"
     SEPIA2_ERR_LIB_ILLEGAL_PARAMETER_ON_FUNCTION_CALL                       =  -9910;  //  "LIB: illegal parameter on function call"
     SEPIA2_ERR_LIB_UNKNOWN_ERROR_CODE                                       =  -9999;  //  "LIB: unknown error code"
+
+
 
 implementation
 

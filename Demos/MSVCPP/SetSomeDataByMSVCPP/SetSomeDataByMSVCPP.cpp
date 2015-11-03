@@ -15,13 +15,20 @@
 //    sets original values for SOM and SLM from file and
 //    deletes file.
 //
+//  Consider, this code is for demonstration purposes only.
+//  Don't use it in productive environments!
 //
 //-----------------------------------------------------------------------------
 //  HISTORY:
 //
 //  apo  06.02.06   created
 //
+//  apo  05.02.14   introduced new map oriented API functions (V1.0.3.282)
+//
 //  apo  05.09.14   adapted to DLL version 1.1.<target>.<svn_build>
+//
+//  apo  18.06.15   substituted deprecated SLM functions
+//                  introduced SOM-D Oscillator Module w. Delay Option (V1.1.xx.450)
 //
 //-----------------------------------------------------------------------------
 //
@@ -45,53 +52,127 @@ extern "C"
 
 int main(int argc, char* argv[])
 {
-  int           iRetVal        = SEPIA2_ERR_NO_ERROR;
-  char          c;
+  int             iRetVal        = SEPIA2_ERR_NO_ERROR;
+  char            c;
   //
-  struct _stat  buf;
-  FILE*         f;
+  struct _stat    buf;
+  FILE*           f;
   //
-  char          cLibVersion    [SEPIA2_VERSIONINFO_LEN]        = "";
-  char          cSepiaSerNo    [SEPIA2_SERIALNUMBER_LEN]       = "";
-  char          cProductModel  [SEPIA2_PRODUCTMODEL_LEN]       = "";
-  char          cFWVersion     [SEPIA2_VERSIONINFO_LEN]        = "";
-  char          cDescriptor    [SEPIA2_USB_STRDECR_LEN]        = "";
-  char          cFWErrCond     [SEPIA2_FW_ERRCOND_LEN]         = "";
-  char          cErrString     [SEPIA2_ERRSTRING_LEN]          = "";
-  char          cFWErrPhase    [SEPIA2_FW_ERRPHASE_LEN]        = "";
-  char          cFreqTrigMode  [SEPIA2_SOM_FREQ_TRIGMODE_LEN]  = "";
+  char            cLibVersion    [SEPIA2_VERSIONINFO_LEN]        = "";
+  char            cSepiaSerNo    [SEPIA2_SERIALNUMBER_LEN]       = "";
+  char            cGivenSerNo    [SEPIA2_SERIALNUMBER_LEN]       = "";
+  char            cProductModel  [SEPIA2_PRODUCTMODEL_LEN]       = "";
+  char            cGivenProduct  [SEPIA2_PRODUCTMODEL_LEN]       = "";
+  char            cFWVersion     [SEPIA2_VERSIONINFO_LEN]        = "";
+  char            cDescriptor    [SEPIA2_USB_STRDECR_LEN]        = "";
+  char            cFWErrCond     [SEPIA2_FW_ERRCOND_LEN]         = "";
+  char            cErrString     [SEPIA2_ERRSTRING_LEN]          = "";
+  char            cFWErrPhase    [SEPIA2_FW_ERRPHASE_LEN]        = "";
+  char            cFreqTrigMode  [SEPIA2_SOM_FREQ_TRIGMODE_LEN]  = "";
+  char            cSOMType       [5]                             = "";
+  char            cSLMType       [5]                             = "";
+  char            cTemp          [1025];
   //
-  long          lBurstChannels [SEPIA2_SOM_BURSTCHANNEL_COUNT] = {0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L};
-  long          lTemp;
+  long            lBurstChannels [SEPIA2_SOM_BURSTCHANNEL_COUNT] = {0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L};
+  long            lTemp;
   //
-  int           iDevIdx                                        =   0;
-  int           iSOM_Slot                                      = 100;
-  int           iSLM_Slot                                      = 200;
+  int             iSOM_Slot                                      = 100;
+  int             iSLM_Slot                                      = 200;
+  int             iDevIdx                                        =  -1;
+  int             iGivenDevIdx;
   //
   //
-  int           iModuleCount;
-  int           iFWErrCode;
-  int           iFWErrPhase;
-  int           iFWErrLocation;
-  int           iFWErrSlot;
-  int           iFreqTrigMode;
-  int           iTemp1;
-  int           iTemp2;
-  int           iTemp3;
-  int           iFreq;
-  int           iHead;
+  int             iModuleCount;
+  int             iModuleType;
+  int             iFWErrCode;
+  int             iFWErrPhase;
+  int             iFWErrLocation;
+  int             iFWErrSlot;
+  int             iFreqTrigIdx;
+  int             iTemp1;
+  int             iTemp2;
+  int             iTemp3;
+  int             iFreq;
+  int             iHead;
+  int             i;
   //
   // byte
-  unsigned char bDivider;
-  unsigned char bPreSync;
-  unsigned char bMaskSync;
-  unsigned char bOutEnable;
-  unsigned char bSyncEnable;
-  unsigned char bSyncInverse;
-  unsigned char bPulseMode;
-  unsigned char bIntensity;
+  unsigned char   bUSBInstGiven = false;
+  unsigned char   bSerialGiven  = false;
+  unsigned char   bProductGiven = false;
+  unsigned char   bIsSOMDModule;
+  unsigned char   bExtTiggered;
+  unsigned char   bDivider;
+  unsigned char   bPreSync;
+  unsigned char   bMaskSync;
+  unsigned char   bOutEnable;
+  unsigned char   bSyncEnable;
+  unsigned char   bSyncInverse;
+  unsigned char   bSynchronized;
+  unsigned char   bPulseMode;
   //
-
+  // word
+  unsigned short  wIntensity;
+  unsigned short  wDivider;
+  //
+  float           fIntensity;
+  //
+  //
+  printf (" called with %d Parameter%s:\n", argc-1, (argc>2)?"s":"");
+  for (i=1; i<argc; i++) 
+  {
+    if (strlen(argv[0]) == 1)
+    {
+      wchar_t* pwc = (wchar_t*)&(argv[i][0]); 
+      //
+      if (0 == wcsncmp (pwc, L"-inst=", 6))
+      {
+        iGivenDevIdx = _wtoi (&(pwc[6]));
+        printf ("    -inst=%d\n", iGivenDevIdx);
+        bUSBInstGiven = true;
+      } else
+      if (0 == wcsncmp (pwc, L"-serial=", 8))
+      {
+        sprintf_s (cGivenSerNo, SEPIA2_SERIALNUMBER_LEN, "%S", &pwc[8]);
+        printf ("    -serial=%S\n", &pwc[8]);
+        bSerialGiven = (strlen (cGivenSerNo) > 0);
+      } else
+      if (0 == wcsncmp (pwc, L"-product=", 9))
+      {
+        sprintf_s (cGivenProduct, SEPIA2_PRODUCTMODEL_LEN, "%S", &pwc[9]);
+        printf ("    -product=\"%S\"\n", &pwc[9]);
+        bProductGiven = (strlen (cGivenProduct) > 0);
+      } else
+      {
+        printf ("    %S : unknown parameter!\n", argv[i]);
+      }
+    }
+    else
+    {
+      char* pc = (char*)&(argv[i][0]); 
+      if (0 == strncmp (pc, "-inst=", 6))
+      {
+        iGivenDevIdx = atoi (&(pc[6]));
+        printf ("    -inst=%d\n", iGivenDevIdx);
+        bUSBInstGiven = true;
+      } else
+      if (0 == strncmp (pc, "-serial=", 8))
+      {
+        strcpy_s (cGivenSerNo, SEPIA2_SERIALNUMBER_LEN, &argv[i][8]);
+        printf ("    -serial=%s\n", &argv[i][8]);
+        bSerialGiven = (strlen (cGivenSerNo) > 0);
+      } else
+      if (0 == strncmp (pc, "-product=", 9))
+      {
+        strcpy_s (cGivenProduct, SEPIA2_PRODUCTMODEL_LEN, &argv[i][9]);
+        printf ("    -product=%s\n", &argv[i][9]);
+        bProductGiven = (strlen (cGivenProduct) > 0);
+      } else
+      {
+        printf ("    %s : unknown parameter!\n", argv[i]);
+      }
+    }
+  }
 
   printf ("\n\n     PQLaserDrv   Set SOME Values Demo : \n");
   printf ("    =================================================\n\n\n");
@@ -116,7 +197,33 @@ int main(int argc, char* argv[])
     printf ("\n");
   }
   //
-  // establish USB connection to sepia
+  // establish USB connection to the sepia first matching all given conditions
+  //
+  for (i = (bUSBInstGiven ? iGivenDevIdx : 0); i < (bUSBInstGiven ? iGivenDevIdx+1 : SEPIA2_MAX_USB_DEVICES); i++)
+  {
+    strcpy_s (cSepiaSerNo,   SEPIA2_SERIALNUMBER_LEN, "");
+    strcpy_s (cProductModel, SEPIA2_PRODUCTMODEL_LEN, "");
+    //
+    iRetVal = SEPIA2_USB_OpenGetSerNumAndClose (i, cProductModel, cSepiaSerNo);
+    if ( (iRetVal == SEPIA2_ERR_NO_ERROR) 
+      && (  (  (bSerialGiven && bProductGiven)
+            && ( (strcmp (cGivenSerNo,   cSepiaSerNo)   == 0)
+              && (strcmp (cGivenProduct, cProductModel) == 0)
+                )
+            )
+        ||  (  (!bSerialGiven != !bProductGiven)
+            && ( (strcmp (cGivenSerNo,   cSepiaSerNo)   == 0)
+              || (strcmp (cGivenProduct, cProductModel) == 0)
+                )
+            )
+        ||  ( !bSerialGiven && !bProductGiven) 
+          )
+        )
+    {
+      iDevIdx = bUSBInstGiven ? ((iGivenDevIdx == i) ? i : -1) : i;
+      break;
+    }
+  }
   //
   if ((iRetVal = SEPIA2_USB_OpenDevice (iDevIdx, cProductModel, cSepiaSerNo)) == SEPIA2_ERR_NO_ERROR)
   {
@@ -161,6 +268,22 @@ int main(int argc, char* argv[])
         else
         {
           //
+          // SOM-Type - Initialization
+          //
+          if ((iRetVal = SEPIA2_COM_GetModuleType (iDevIdx, iSOM_Slot, SEPIA2_PRIMARY_MODULE, &iModuleType)) == SEPIA2_ERR_NO_ERROR)
+          {
+            bIsSOMDModule = (iModuleType == SEPIA2OBJECT_SOMD);
+            SEPIA2_COM_DecodeModuleTypeAbbr (iModuleType, cSOMType);
+          }
+          //
+          // SLM-Type - Initialization
+          //
+          if ((iRetVal = SEPIA2_COM_GetModuleType (iDevIdx, iSLM_Slot, SEPIA2_PRIMARY_MODULE, &iModuleType)) == SEPIA2_ERR_NO_ERROR)
+          {
+            SEPIA2_COM_DecodeModuleTypeAbbr (iModuleType, cSLMType);
+          }
+          //
+          //
           // we want to restore the changed values ...
           //
           if (_stat( "OrigData.txt", &buf ) == 0)
@@ -168,35 +291,40 @@ int main(int argc, char* argv[])
             // ... so we have to read the original data from file
             //
             f = fopen ("OrigData.txt", "rt");
-            fscanf (f, "SOM FreqTrigMode  =        %d\n", &iFreqTrigMode);
+            fscanf (f, "%s FreqTrigIdx   =      %d\n", cTemp, &iFreqTrigIdx);
+            bExtTiggered = (iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_RISING) || (iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_FALLING);
             //
-            fscanf (f, "SOM Divider       =      %d\n", &iTemp1);
-            fscanf (f, "SOM PreSync       =      %d\n", &iTemp2);
-            fscanf (f, "SOM MaskSync      =      %d\n", &iTemp3);
-            bDivider  = iTemp1;
-            bPreSync  = iTemp2;
-            bMaskSync = iTemp3;
+            if ((strcmp (cTemp, "SOMD") == 0) && bExtTiggered)
+            {
+              fscanf (f, "%s ExtTrig.Sync. =      %d\n", cTemp, &iTemp1);
+              bSynchronized = (iTemp1 != 0);
+            }
             //
-            fscanf (f, "SOM Output Enable =     0x%2X\n", &iTemp1);
-            fscanf (f, "SOM Sync Enable   =     0x%2X\n", &iTemp2);
-            fscanf (f, "SOM Sync Inverse  =        %d\n", &iTemp3);
+            fscanf (f, "%s Divider       =      %d\n", cTemp, &iTemp1);
+            fscanf (f, "%s PreSync       =      %d\n", cTemp, &iTemp2);
+            fscanf (f, "%s MaskSync      =      %d\n", cTemp, &iTemp3);
+            bDivider   = (unsigned char)(iTemp1 % 256);
+            wDivider   = iTemp1;
+            bPreSync   = iTemp2;
+            bMaskSync  = iTemp3;
+            //
+            fscanf (f, "%s Output Enable =     0x%2X\n", cTemp, &iTemp1);
+            fscanf (f, "%s Sync Enable   =     0x%2X\n", cTemp, &iTemp2);
+            fscanf (f, "%s Sync Inverse  =        %d\n", cTemp, &iTemp3);
             bOutEnable   = iTemp1;
             bSyncEnable  = iTemp2;
             bSyncInverse = iTemp3;
-            fscanf (f, "SOM BurstLength 1 = %8d\n", &lBurstChannels[0]);
-            fscanf (f, "SOM BurstLength 2 = %8d\n", &lBurstChannels[1]);
-            fscanf (f, "SOM BurstLength 3 = %8d\n", &lBurstChannels[2]);
-            fscanf (f, "SOM BurstLength 4 = %8d\n", &lBurstChannels[3]);
-            fscanf (f, "SOM BurstLength 5 = %8d\n", &lBurstChannels[4]);
-            fscanf (f, "SOM BurstLength 6 = %8d\n", &lBurstChannels[5]);
-            fscanf (f, "SOM BurstLength 7 = %8d\n", &lBurstChannels[6]);
-            fscanf (f, "SOM BurstLength 8 = %8d\n", &lBurstChannels[7]);
+            for (i = 0; i < SEPIA2_SOM_BURSTCHANNEL_COUNT; i++)
+            {
+              fscanf (f, "%4s BurstLength %d = %8d\n", cTemp, &iTemp1, &lTemp);
+              lBurstChannels[iTemp1-1] = lTemp;
+            }
             //
-            fscanf (f, "SLM FreqTrigMode  =        %1d\n", &iFreq);
-            fscanf (f, "SLM Pulse Mode    =        %1d\n", &iTemp1);
-            fscanf (f, "SLM Intensity     =      %3d%%\n",  &iTemp2);
+            fscanf (f, "%s FreqTrigIdx   =        %1d\n", cTemp, &iFreq);
+            fscanf (f, "%s Pulse Mode    =        %1d\n", cTemp, &iTemp1);
+            fscanf (f, "%s Intensity     =      %f%%\n",  cTemp, &fIntensity);
             bPulseMode = iTemp1;
-            bIntensity = iTemp2;
+            wIntensity = (word)((int)(10 * fIntensity + 0.5));
 
             // ... and delete it afterwards
             fclose(f);
@@ -222,38 +350,62 @@ int main(int argc, char* argv[])
             // SOM
             //
             // FreqTrigMode
-            SEPIA2_SOM_GetFreqTrigMode (iDevIdx, iSOM_Slot, &iFreqTrigMode);
-            fprintf (f, "SOM FreqTrigMode  =        %1d\n", iFreqTrigMode);
-            iFreqTrigMode = SEPIA2_SOM_INT_OSC_C;
+            if (bIsSOMDModule)
+            {
+              SEPIA2_SOMD_GetFreqTrigMode (iDevIdx, iSOM_Slot, &iFreqTrigIdx, &bSynchronized);
+              fprintf   (f, "%-4s FreqTrigIdx   =        %1d\n", cSOMType, iFreqTrigIdx);
+              if ((iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_RISING) || (iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_FALLING))
+              {
+                fprintf (f, "%-4s ExtTrig.Sync. =        %1d\n", cSOMType, bSynchronized ? 1 : 0);
+              }
+            }
+            else
+            {
+              SEPIA2_SOM_GetFreqTrigMode  (iDevIdx, iSOM_Slot, &iFreqTrigIdx);
+              fprintf (f, "%-4s FreqTrigIdx   =        %1d\n", cSOMType, iFreqTrigIdx);
+            }
+            iFreqTrigIdx = SEPIA2_SOM_INT_OSC_C;
             //
             // BurstValues
-            SEPIA2_SOM_GetBurstValues  (iDevIdx, iSOM_Slot, &bDivider, &bPreSync, &bMaskSync);
-            fprintf (f, "SOM Divider       =      %3u\n", bDivider);
-            fprintf (f, "SOM PreSync       =      %3u\n", bPreSync);
-            fprintf (f, "SOM MaskSync      =      %3u\n", bMaskSync);
+            if (bIsSOMDModule)
+            {
+              SEPIA2_SOMD_GetBurstValues (iDevIdx, iSOM_Slot, &wDivider, &bPreSync, &bMaskSync);
+            }
+            else
+            {
+              SEPIA2_SOM_GetBurstValues  (iDevIdx, iSOM_Slot, &bDivider, &bPreSync, &bMaskSync);
+              wDivider = bDivider;
+            }
+            fprintf (f, "%-4s Divider       =    %5u\n",   cSOMType, wDivider);
+            fprintf (f, "%-4s PreSync       =      %3u\n", cSOMType, bPreSync);
+            fprintf (f, "%-4s MaskSync      =      %3u\n", cSOMType, bMaskSync);
             bDivider  = 200;
             bPreSync  =  10;
             bMaskSync =   1;
             //
             // Out'n'SyncEnable
-            SEPIA2_SOM_GetOutNSyncEnable (iDevIdx, iSOM_Slot, &bOutEnable, &bSyncEnable, &bSyncInverse);
-            fprintf (f, "SOM Output Enable =     0x%2.2X\n", bOutEnable);
-            fprintf (f, "SOM Sync Enable   =     0x%2.2X\n", bSyncEnable);
-            fprintf (f, "SOM Sync Inverse  =        %1d\n",  bSyncInverse);
+            if (bIsSOMDModule)
+            {
+              SEPIA2_SOMD_GetOutNSyncEnable   (iDevIdx, iSOM_Slot, &bOutEnable, &bSyncEnable, &bSyncInverse);
+              SEPIA2_SOMD_GetBurstLengthArray (iDevIdx, iSOM_Slot, &lBurstChannels[0], &lBurstChannels[1], &lBurstChannels[2], &lBurstChannels[3], &lBurstChannels[4], &lBurstChannels[5], &lBurstChannels[6], &lBurstChannels[7]);
+            }
+            else
+            {
+              SEPIA2_SOM_GetOutNSyncEnable   (iDevIdx, iSOM_Slot, &bOutEnable, &bSyncEnable, &bSyncInverse);
+              SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSOM_Slot, &lBurstChannels[0], &lBurstChannels[1], &lBurstChannels[2], &lBurstChannels[3], &lBurstChannels[4], &lBurstChannels[5], &lBurstChannels[6], &lBurstChannels[7]);
+            }
+            fprintf (f, "%-4s Output Enable =     0x%2.2X\n", cSOMType, bOutEnable);
+            fprintf (f, "%-4s Sync Enable   =     0x%2.2X\n", cSOMType, bSyncEnable);
+            fprintf (f, "%-4s Sync Inverse  =        %1d\n",  cSOMType,  bSyncInverse);
             bOutEnable   = 0xA5;
             bSyncEnable  = 0x93;
             bSyncInverse =    1;
             //
             // BurstLengthArray
-            SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSOM_Slot, &lBurstChannels[0], &lBurstChannels[1], &lBurstChannels[2], &lBurstChannels[3], &lBurstChannels[4], &lBurstChannels[5], &lBurstChannels[6], &lBurstChannels[7]);
-            fprintf (f, "SOM BurstLength 1 = %8d\n", lBurstChannels[0]);
-            fprintf (f, "SOM BurstLength 2 = %8d\n", lBurstChannels[1]);
-            fprintf (f, "SOM BurstLength 3 = %8d\n", lBurstChannels[2]);
-            fprintf (f, "SOM BurstLength 4 = %8d\n", lBurstChannels[3]);
-            fprintf (f, "SOM BurstLength 5 = %8d\n", lBurstChannels[4]);
-            fprintf (f, "SOM BurstLength 6 = %8d\n", lBurstChannels[5]);
-            fprintf (f, "SOM BurstLength 7 = %8d\n", lBurstChannels[6]);
-            fprintf (f, "SOM BurstLength 8 = %8d\n", lBurstChannels[7]);
+            for (i = 0; i < SEPIA2_SOM_BURSTCHANNEL_COUNT; i++)
+            {
+              fprintf (f, "%-4s BurstLength %d = %8d\n", cSOMType, i+1, lBurstChannels[i]);
+            }
             // just change places of burstlenght channel 2 & 3
             lTemp             = lBurstChannels[2];
             lBurstChannels[2] = lBurstChannels[1];
@@ -262,13 +414,14 @@ int main(int argc, char* argv[])
             //
             // SLM
             //
-            SEPIA2_SLM_GetParameters (iDevIdx, iSLM_Slot, &iFreq, &bPulseMode, &iHead, &bIntensity);
-            fprintf (f, "SLM FreqTrigMode  =        %1d\n", iFreq);
-            fprintf (f, "SLM Pulse Mode    =        %1d\n", bPulseMode);
-            fprintf (f, "SLM Intensity     =      %3d%%\n",  bIntensity);
-            iFreq      =  (2 + iFreq) % SEPIA2_SLM_FREQ_TRIGMODE_COUNT;
-            bPulseMode =   1 - bPulseMode;
-            bIntensity = 100 - bIntensity;
+            SEPIA2_SLM_GetIntensityFineStep (iDevIdx, iSLM_Slot, &wIntensity);
+            SEPIA2_SLM_GetPulseParameters   (iDevIdx, iSLM_Slot, &iFreq, &bPulseMode, &iHead);
+            fprintf (f, "%-4s FreqTrigIdx   =        %1d\n",   cSLMType, iFreq);
+            fprintf (f, "%-4s Pulse Mode    =        %1d\n",   cSLMType, bPulseMode);
+            fprintf (f, "%-4s Intensity     =      %3.1f%%\n", cSLMType, 0.1 * wIntensity);
+            iFreq      = (2 + iFreq) % SEPIA2_SLM_FREQ_TRIGMODE_COUNT;
+            bPulseMode =    1 - bPulseMode;
+            wIntensity = 1000 - wIntensity;
             //
             //
             fclose(f);
@@ -277,31 +430,48 @@ int main(int argc, char* argv[])
           //
           // and here we finally set the new (resp. old) values
           //
-          SEPIA2_SOM_SetFreqTrigMode    (iDevIdx, iSOM_Slot, iFreqTrigMode);
-          SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSOM_Slot, iFreqTrigMode, cFreqTrigMode);
-          printf ("     SOM FreqTrigMode  =      '%s'\n", cFreqTrigMode);
+          if (bIsSOMDModule)
+          {
+            SEPIA2_SOMD_SetFreqTrigMode     (iDevIdx, iSOM_Slot, iFreqTrigIdx, bSynchronized);
+            SEPIA2_SOMD_DecodeFreqTrigMode  (iDevIdx, iSOM_Slot, iFreqTrigIdx, cFreqTrigMode);
+            SEPIA2_SOMD_SetBurstValues      (iDevIdx, iSOM_Slot, wDivider, bPreSync, bMaskSync);
+            SEPIA2_SOMD_SetOutNSyncEnable   (iDevIdx, iSOM_Slot, bOutEnable, bSyncEnable, bSyncInverse);
+            SEPIA2_SOMD_SetBurstLengthArray (iDevIdx, iSOM_Slot, lBurstChannels[0], lBurstChannels[1], lBurstChannels[2], lBurstChannels[3], lBurstChannels[4], lBurstChannels[5], lBurstChannels[6], lBurstChannels[7]);
+          }
+          else
+          {
+            bDivider = (unsigned char) wDivider % 256;
+            SEPIA2_SOM_SetFreqTrigMode     (iDevIdx, iSOM_Slot, iFreqTrigIdx);
+            SEPIA2_SOM_DecodeFreqTrigMode  (iDevIdx, iSOM_Slot, iFreqTrigIdx, cFreqTrigMode);
+            SEPIA2_SOM_SetBurstValues      (iDevIdx, iSOM_Slot, bDivider, bPreSync, bMaskSync);
+            SEPIA2_SOM_SetOutNSyncEnable   (iDevIdx, iSOM_Slot, bOutEnable, bSyncEnable, bSyncInverse);
+            SEPIA2_SOM_SetBurstLengthArray (iDevIdx, iSOM_Slot, lBurstChannels[0], lBurstChannels[1], lBurstChannels[2], lBurstChannels[3], lBurstChannels[4], lBurstChannels[5], lBurstChannels[6], lBurstChannels[7]);
+          }
+          printf ("     %-4s FreqTrigMode  =      '%s'\n", cSOMType, cFreqTrigMode);
+          if ((iModuleType == SEPIA2OBJECT_SOMD) && ((iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_RISING) || (iFreqTrigIdx == SEPIA2_SOM_TRIGMODE_FALLING)))
+          {
+            printf ("     %-4s ExtTrig.Sync. =        %1d\n", cSOMType, bSynchronized ? 1 : 0);
+          }
           //
-          SEPIA2_SOM_SetBurstValues  (iDevIdx, iSOM_Slot, bDivider, bPreSync, bMaskSync);
-          printf ("     SOM Divider       =      %3u\n",   bDivider);
-          printf ("     SOM PreSync       =      %3u\n",   bPreSync);
-          printf ("     SOM MaskSync      =      %3u\n",   bMaskSync);
+          printf ("     %-4s Divider       =    %5u\n",   cSOMType,   wDivider);
+          printf ("     %-4s PreSync       =      %3u\n", cSOMType,   bPreSync);
+          printf ("     %-4s MaskSync      =      %3u\n", cSOMType,   bMaskSync);
           //
-          SEPIA2_SOM_SetOutNSyncEnable (iDevIdx, iSOM_Slot, bOutEnable, bSyncEnable, bSyncInverse);
-          printf ("     SOM Output Enable =     0x%2.2X\n", bOutEnable);
-          printf ("     SOM Sync Enable   =     0x%2.2X\n", bSyncEnable);
-          printf ("     SOM Sync Inverse  =        %1d\n",  bSyncInverse);
+          printf ("     %-4s Output Enable =     0x%2.2X\n", cSOMType, bOutEnable);
+          printf ("     %-4s Sync Enable   =     0x%2.2X\n", cSOMType, bSyncEnable);
+          printf ("     %-4s Sync Inverse  =        %1d\n",  cSOMType,  bSyncInverse);
           //
-          SEPIA2_SOM_SetBurstLengthArray (iDevIdx, iSOM_Slot, lBurstChannels[0], lBurstChannels[1], lBurstChannels[2], lBurstChannels[3], lBurstChannels[4], lBurstChannels[5], lBurstChannels[6], lBurstChannels[7]);
-          printf ("     SOM BurstLength 2 = %8d\n",   lBurstChannels[1]);
-          printf ("     SOM BurstLength 3 = %8d\n\n", lBurstChannels[2]);
+          printf ("     %-4s BurstLength 2 = %8d\n",   cSOMType, lBurstChannels[1]);
+          printf ("     %-4s BurstLength 3 = %8d\n\n", cSOMType, lBurstChannels[2]);
           //
           // SLM
           //
-          SEPIA2_SLM_SetParameters (iDevIdx, iSLM_Slot, iFreq, bPulseMode, bIntensity);
+          SEPIA2_SLM_SetPulseParameters   (iDevIdx, iSLM_Slot, iFreq, bPulseMode);
+          SEPIA2_SLM_SetIntensityFineStep (iDevIdx, iSLM_Slot, wIntensity);
           SEPIA2_SLM_DecodeFreqTrigMode (iFreq, cFreqTrigMode);
-          printf ("     SLM FreqTrigMode  =      '%s'\n",  cFreqTrigMode);
-          printf ("     SLM Pulse Mode    =        %1d\n", bPulseMode);
-          printf ("     SLM Intensity     =      %3d%%\n", bIntensity);
+          printf ("     %-4s FreqTrigMode  =      '%s'\n", cSLMType,  cFreqTrigMode);
+          printf ("     %-4s Pulse Mode    =        %1d\n", cSLMType, bPulseMode);
+          printf ("     %-4s Intensity     =       %3.1f%%\n", cSLMType, 0.1 * wIntensity);
         }
       }
     } // get module map

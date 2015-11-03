@@ -15,10 +15,20 @@
 //    it sets original values for SOM and SLM from file and
 //    deletes file.
 //
+//  Consider, this code is for demonstration purposes only.
+//  Don't use it in productive environments!
+//
 //-----------------------------------------------------------------------------
 //  HISTORY:
 //
 //  apo  07.02.06   created analogue to SetSomeData.cpp
+//
+//  apo  05.02.14   introduced new map oriented API functions (V1.0.3.282)
+//
+//  apo  05.09.14   adapted to DLL version 1.1.<target>.<svn_build>
+//
+//  apo  18.06.15   substituted deprecated SLM functions
+//                  introduced SOM-D Oscillator Module w. Delay Option (V1.1.xx.450)
 //
 //-----------------------------------------------------------------------------
 //
@@ -27,7 +37,7 @@ program SetSomeDataByDelphi;
 {$APPTYPE CONSOLE}
 
 uses
-  SysUtils,
+  System.SysConst, System.SysUtils, System.StrUtils,
   Sepia2_ErrorCodes in '..\Shared_Delphi\Sepia2_ErrorCodes.pas',
   Sepia2_ImportUnit in '..\Shared_Delphi\Sepia2_ImportUnit.pas';
 
@@ -47,10 +57,13 @@ var
   cFWErrCond        : string  = '';
   cErrString        : string  = '';
   cFWErrPhase       : string  = '';
+  cSOMType          : string  = '';
+  cSLMType          : string  = '';
   cFreqTrigMode     : string  = '';
   //
-  cDummy            : string[19] = '';
+  cDummy            : string[20] = '';
   cTemp             : string  = '';
+  cBuffer           : string;
   //
   lBurstChannels    : array  [1..SEPIA2_SOM_BURSTCHANNEL_COUNT] of longint = (0, 0, 0, 0, 0, 0, 0, 0);
   lTemp             : longint;
@@ -61,6 +74,7 @@ var
   //
   //
   iModuleCount      : integer;
+  iSOMModuleType    : integer;
   iFWErrCode        : integer;
   iFWErrPhase       : integer;
   iFWErrLocation    : integer;
@@ -68,13 +82,14 @@ var
   iFreqTrigMode     : integer;
   iHead             : integer;
   iFreq             : integer;
+  iErrorCode        : integer;
   //
   // boolean
   bPulseMode        : boolean;
   bSyncInverse      : boolean;
+  bSynchronize      : boolean;
   //
   // byte
-  byteIntensity     : byte;
   byteOutEnable     : byte;
   byteSyncEnable    : byte;
   bytePreSync       : byte;
@@ -82,7 +97,10 @@ var
   //
   // word
   wDivider          : word;
+  wIntensity        : word;
+  wSOMState         : word;
   //
+  fIntensity        : real;
   //
   i                 : integer;
 
@@ -103,7 +121,7 @@ begin
     if (StrLComp (PChar (cLibVersion), PChar (LIB_VERSION_REFERENCE), LIB_VERSION_COMPLEN) <> 0)
     then begin
       writeln;
-      writeln ('     Warning: This demo application was built for version  ', LIB_VERSION_REFERENCE);
+      writeln ('     Warning: This demo application was built for version  ', LIB_VERSION_REFERENCE, 'xxx');
       writeln ('              Continuing may cause unpredictable results!');
       writeln;
       write   ('     Do you want to continue anyway? (y/n): ');
@@ -118,7 +136,7 @@ begin
       writeln;
     end;
     //
-    // establish USB connection to sepia
+    // establish USB connection to the sepia first matching all given conditions
     //
     iRetVal := SEPIA2_USB_OpenDevice (iDevIdx, cProductModel, cSepiaSerNo);
     if (iRetVal = SEPIA2_ERR_NO_ERROR)
@@ -143,6 +161,23 @@ begin
       //
       // second: in case of changes with soft restart:
       // iRetVal := SEPIA2_FWR_GetModuleMap (iDevIdx, SEPIA2_RESTART, iModuleCount);
+      //
+      if (iRetVal = SEPIA2_ERR_NO_ERROR)
+      then begin
+        iRetVal := SEPIA2_COM_GetModuleType (iDevIdx, iSOM_Slot, true, iSOMModuleType);
+        if (iRetVal = SEPIA2_ERR_NO_ERROR)
+        then begin
+          SEPIA2_COM_DecodeModuleTypeAbbr (iSOMModuleType, cSOMType);
+          cSOMType := LeftStr (cSOMType + '  ', 4);
+          if (iSOMModuleType = SEPIA2OBJECT_SOMD)
+          then
+            SEPIA2_SOMD_GetStatusError (iDevIdx, iSOM_Slot, wSOMState, iErrorCode);
+          //
+          SEPIA2_COM_DecodeModuleTypeAbbr (SEPIA2OBJECT_SLM, cSLMType);
+          cSLMType := LeftStr (cSLMType + '  ', 4);
+        end;
+      end;
+
       //
       if (iRetVal = SEPIA2_ERR_NO_ERROR)
       then begin
@@ -178,6 +213,17 @@ begin
               Reset(f);
               //
               readln (f, cDummy, iFreqTrigMode);     // 'SOM FreqTrigMode  ='
+              if ((iSOMModuleType = SEPIA2OBJECT_SOMD) and (iFreqTrigMode < ord (SEPIA2_SOM_INT_OSC_A)))
+              then begin
+                readln (f, cDummy, cTemp);         // 'SOMD TrigSynchron ='
+                i := 1;
+                while (cTemp[i] = ' ')
+                do begin
+                  inc (i);
+                end;
+                bSynchronize := (cTemp[i] = 'T');
+              end
+              else bSynchronize := false;
               //
               readln (f, cDummy, wDivider);          // 'SOM Divider       ='
               readln (f, cDummy, bytePreSync);       // 'SOM PreSync       ='
@@ -193,14 +239,10 @@ begin
               end;
               bSyncInverse := (cTemp[i] = 'T');
               //
-              readln (f, cDummy, lBurstChannels[1]); // 'SOM BurstLength 1 ='
-              readln (f, cDummy, lBurstChannels[2]); // 'SOM BurstLength 2 ='
-              readln (f, cDummy, lBurstChannels[3]); // 'SOM BurstLength 3 ='
-              readln (f, cDummy, lBurstChannels[4]); // 'SOM BurstLength 4 ='
-              readln (f, cDummy, lBurstChannels[5]); // 'SOM BurstLength 5 ='
-              readln (f, cDummy, lBurstChannels[6]); // 'SOM BurstLength 6 ='
-              readln (f, cDummy, lBurstChannels[7]); // 'SOM BurstLength 7 ='
-              readln (f, cDummy, lBurstChannels[8]); // 'SOM BurstLength 8 ='
+              for i:=1 to 8 do
+              begin
+                readln (f, cDummy, lBurstChannels[i]); // 'SOM BurstLength 1 ='
+              end;
               //
               readln (f, cDummy, iFreq);             // 'SLM FreqTrigMode  ='
               readln (f, cDummy, cTemp);             // 'SLM Pulse Mode    ='
@@ -211,7 +253,8 @@ begin
               end;
               bPulseMode := (cTemp[i] = 'T');
               //
-              readln (f, cDummy, byteIntensity);     // 'SLM Intensity     ='
+              readln (f, cDummy, fIntensity);        // 'SLM Intensity     ='
+              wIntensity := Round (10 * fIntensity);
               //
               // ... and delete it afterwards
               CloseFile (f);
@@ -235,15 +278,20 @@ begin
                 writeln ('press RETURN...');
                 readln;
               end;
-
               //
-              // SOM
+              // SOM / SOMD
               //
               // FreqTrigMode
-              iRetVal := SEPIA2_SOM_GetFreqTrigMode (iDevIdx, iSOM_Slot, iFreqTrigMode);
+              bSynchronize := false;
+              if (iSOMModuleType = SEPIA2OBJECT_SOMD)
+              then iRetVal := SEPIA2_SOMD_GetFreqTrigMode (iDevIdx, iSOM_Slot, iFreqTrigMode, bSynchronize)
+              else iRetVal := SEPIA2_SOM_GetFreqTrigMode  (iDevIdx, iSOM_Slot, iFreqTrigMode);
+              //
               if (iRetVal = SEPIA2_ERR_NO_ERROR)
               then begin
-                writeln (f, 'SOM FreqTrigMode  =        ', iFreqTrigMode:1);
+                writeln (f, cSOMType:4, ' FreqTrigMode  =      ', iFreqTrigMode:3);
+                if ((iSOMModuleType = SEPIA2OBJECT_SOMD) and (iFreqTrigMode < ord (SEPIA2_SOM_INT_OSC_A)))
+                then writeln (f, cSOMType:4, ' TrigSynchron  =        ', bSynchronize);
               end;
               iFreqTrigMode := ord (SEPIA2_SOM_INT_OSC_C);
               //
@@ -251,9 +299,9 @@ begin
               iRetVal := SEPIA2_SOM_GetBurstValues  (iDevIdx, iSOM_Slot, wDivider, bytePreSync, byteMaskSync);
               if (iRetVal = SEPIA2_ERR_NO_ERROR)
               then begin
-                writeln (f, 'SOM Divider       =      ', wDivider:3);
-                writeln (f, 'SOM PreSync       =      ', bytePreSync:3);
-                writeln (f, 'SOM MaskSync      =      ', byteMaskSync:3);
+                writeln (f, cSOMType:4, ' Divider       =      ', wDivider:3);
+                writeln (f, cSOMType:4, ' PreSync       =      ', bytePreSync:3);
+                writeln (f, cSOMType:4, ' MaskSync      =      ', byteMaskSync:3);
               end;
               wDivider     := 200;
               bytePreSync  :=  10;
@@ -263,9 +311,9 @@ begin
               iRetVal := SEPIA2_SOM_GetOutNSyncEnable (iDevIdx, iSOM_Slot, byteOutEnable, byteSyncEnable, bSyncInverse);
               if (iRetVal = SEPIA2_ERR_NO_ERROR)
               then begin
-                writeln (f, 'SOM Output Enable =      $',  IntToHex (byteOutEnable,  2):2);
-                writeln (f, 'SOM Sync Enable   =      $',  IntToHex (byteSyncEnable, 2):2);
-                writeln (f, 'SOM Sync Inverse  =        ', bSyncInverse);
+                writeln (f, cSOMType:4, ' Output Enable =      $',  IntToHex (byteOutEnable,  2):2);
+                writeln (f, cSOMType:4, ' Sync Enable   =      $',  IntToHex (byteSyncEnable, 2):2);
+                writeln (f, cSOMType:4, ' Sync Inverse  =        ', bSyncInverse);
               end;
               byteOutEnable  :=  $A5;
               byteSyncEnable :=  $93;
@@ -275,14 +323,8 @@ begin
               iRetVal := SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSOM_Slot, lBurstChannels[1], lBurstChannels[2], lBurstChannels[3], lBurstChannels[4], lBurstChannels[5], lBurstChannels[6], lBurstChannels[7], lBurstChannels[8]);
               if (iRetVal = SEPIA2_ERR_NO_ERROR)
               then begin
-                writeln (f, 'SOM BurstLength 1 = ', lBurstChannels[1]:8);
-                writeln (f, 'SOM BurstLength 2 = ', lBurstChannels[2]:8);
-                writeln (f, 'SOM BurstLength 3 = ', lBurstChannels[3]:8);
-                writeln (f, 'SOM BurstLength 4 = ', lBurstChannels[4]:8);
-                writeln (f, 'SOM BurstLength 5 = ', lBurstChannels[5]:8);
-                writeln (f, 'SOM BurstLength 6 = ', lBurstChannels[6]:8);
-                writeln (f, 'SOM BurstLength 7 = ', lBurstChannels[7]:8);
-                writeln (f, 'SOM BurstLength 8 = ', lBurstChannels[8]:8);
+                for i:=1 to 8 do
+                  writeln (f, cSOMType, ' BurstLength ', i, ' = ', lBurstChannels[i]:8);
                 // just change places of burstlenght channel 2 & 3
                 lTemp             := lBurstChannels[3];
                 lBurstChannels[3] := lBurstChannels[2];
@@ -296,20 +338,24 @@ begin
               //
               // SLM
               //
-              iRetVal := SEPIA2_SLM_GetParameters (iDevIdx, iSLM_Slot, iFreq, bPulseMode, iHead, byteIntensity);
+              iRetVal := SEPIA2_SLM_GetIntensityFineStep (iDevIdx, iSLM_Slot, wIntensity);
               if (iRetVal = SEPIA2_ERR_NO_ERROR)
               then begin
-                writeln (f, 'SLM FreqTrigMode  =        ', iFreq:1);
-                writeln (f, 'SLM Pulse Mode    =        ', bPulseMode);
-                writeln (f, 'SLM Intensity     =      ',   byteIntensity:3, ' %');
+                iRetVal := SEPIA2_SLM_GetPulseParameters (iDevIdx, iSLM_Slot, iFreq, bPulseMode, iHead);
+              end;
+              if (iRetVal = SEPIA2_ERR_NO_ERROR)
+              then begin
+                writeln (f, cSLMType:4, ' FreqTrigMode  =        ', iFreq:1);
+                writeln (f, cSLMType:4, ' Pulse Mode    =        ', bPulseMode);
+                writeln (f, cSLMType:4, ' Intensity     =      ',   0.1*wIntensity:3:1, ' %');
                 iFreq         := (2 + iFreq) mod SEPIA2_SLM_FREQ_TRIGMODE_COUNT;
                 bPulseMode    := not bPulseMode;
-                byteIntensity := 100 - byteIntensity;
+                wIntensity    := 1000 - wIntensity;
               end
               else begin
                 iFreq         := ord (SEPIA2_SLM_FREQ_20MHZ);
                 bPulseMode    := true;
-                byteIntensity := 44;
+                wIntensity    := 440;
               end;
               //
               //
@@ -320,67 +366,83 @@ begin
             //
             // and here we finally set the new (resp. old) values
             //
-            iRetVal := SEPIA2_SOM_SetFreqTrigMode    (iDevIdx, iSOM_Slot, iFreqTrigMode);
+            if (iSOMModuleType = SEPIA2OBJECT_SOM)
+            then
+              iRetVal := SEPIA2_SOM_SetFreqTrigMode    (iDevIdx, iSOM_Slot, iFreqTrigMode)
+            else begin
+              iRetVal := SEPIA2_SOMD_SetFreqTrigMode    (iDevIdx, iSOM_Slot, iFreqTrigMode, bSynchronize);
+              iRetVal := SEPIA2_SOMD_GetStatusError (iDevIdx, iSOM_Slot, wSOMState, iErrorCode);
+            end;
+            //
             if (iRetVal = SEPIA2_ERR_NO_ERROR)
             then begin
               iRetVal := SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSOM_Slot, iFreqTrigMode, cFreqTrigMode);
               if (iRetVal = SEPIA2_ERR_NO_ERROR)
               then begin
-                writeln ('     SOM FreqTrigMode  =      ''', cFreqTrigMode, '''');
+                writeln ('     ', cSOMType:4, ' FreqTrigMode  =      ''', cFreqTrigMode, '''');
+                if ((iSOMModuleType = SEPIA2OBJECT_SOMD) and (iFreqTrigMode < ord (SEPIA2_SOM_INT_OSC_A)))
+                then begin
+                  writeln ('     ', cSOMType:4, ' TrigSynchron  =        ', bSynchronize);
+                end;
               end
               else begin
-                writeln ('     SOM FreqTrigMode         ??  (decoding error)');
+                writeln ('     ', cSOMType:4, ' FreqTrigMode         ??  (decoding error)');
               end;
             end
             else begin
-              writeln ('     SOM FreqTrigMode         ??  (reading error)');
+              writeln ('     ', cSOMType:4, ' FreqTrigMode         ??  (reading error)');
             end;
             //
             iRetVal := SEPIA2_SOM_SetBurstValues  (iDevIdx, iSOM_Slot, wDivider, bytePreSync, byteMaskSync);
             if (iRetVal = SEPIA2_ERR_NO_ERROR)
             then begin
-              writeln ('     SOM Divider       =      ', wDivider:3);
-              writeln ('     SOM PreSync       =      ', bytePreSync:3);
-              writeln ('     SOM MaskSync      =      ', byteMaskSync:3);
+              writeln ('     ', cSOMType:4, ' Divider       =      ', wDivider:3);
+              writeln ('     ', cSOMType:4, ' PreSync       =      ', bytePreSync:3);
+              writeln ('     ', cSOMType:4, ' MaskSync      =      ', byteMaskSync:3);
             end;
             //
             iRetVal := SEPIA2_SOM_SetOutNSyncEnable (iDevIdx, iSOM_Slot, byteOutEnable, byteSyncEnable, bSyncInverse);
             if (iRetVal = SEPIA2_ERR_NO_ERROR)
             then begin
-              writeln ('     SOM Output Enable =      $',  IntToHex (byteOutEnable,  2):2);
-              writeln ('     SOM Sync Enable   =      $',  IntToHex (byteSyncEnable, 2):2);
-              writeln ('     SOM Sync Inverse  =        ', bSyncInverse);
+              writeln ('     ', cSOMType:4, ' Output Enable =      $',  IntToHex (byteOutEnable,  2):2);
+              writeln ('     ', cSOMType:4, ' Sync Enable   =      $',  IntToHex (byteSyncEnable, 2):2);
+              writeln ('     ', cSOMType:4, ' Sync Inverse  =        ', bSyncInverse);
               writeln;
             end;
             //
             iRetVal := SEPIA2_SOM_SetBurstLengthArray (iDevIdx, iSOM_Slot, lBurstChannels[1], lBurstChannels[2], lBurstChannels[3], lBurstChannels[4], lBurstChannels[5], lBurstChannels[6], lBurstChannels[7], lBurstChannels[8]);
             if (iRetVal = SEPIA2_ERR_NO_ERROR)
             then begin
-              writeln ('     SOM BurstLength 2 = ', lBurstChannels[2]:8);
-              writeln ('     SOM BurstLength 3 = ', lBurstChannels[3]:8);
+              writeln ('     ', cSOMType:4, ' BurstLength 2 = ', lBurstChannels[2]:8);
+              writeln ('     ', cSOMType:4, ' BurstLength 3 = ', lBurstChannels[3]:8);
               writeln;
             end;
             //
             // SLM
             //
-            iRetVal := SEPIA2_SLM_SetParameters (iDevIdx, iSLM_Slot, iFreq, bPulseMode, byteIntensity);
+            iRetVal := SEPIA2_SLM_SetIntensityFineStep (iDevIdx, iSLM_Slot, wIntensity);
+            if (iRetVal = SEPIA2_ERR_NO_ERROR)
+            then begin
+              iRetVal := SEPIA2_SLM_SetPulseParameters (iDevIdx, iSLM_Slot, iFreq, bPulseMode);
+            end;
+
             if (iRetVal = SEPIA2_ERR_NO_ERROR)
             then begin
               SEPIA2_SLM_DecodeFreqTrigMode (iFreq, cFreqTrigMode);
               if (iRetVal = SEPIA2_ERR_NO_ERROR)
               then begin
-                writeln ('     SLM FreqTrigMode         ''', cFreqTrigMode, '''');
+                writeln ('     ', cSLMType:4, ' FreqTrigMode   =      ''', cFreqTrigMode, '''');
               end
               else begin
-                writeln ('     SLM FreqTrigMode  =      ??  (decoding error)');
+                writeln ('     ', cSLMType:4, ' FreqTrigMode   =       ??  (decoding error)');
               end;
-              writeln ('     SLM Pulse Mode             ', bPulseMode);
-              writeln ('     SLM Intensity            ',   byteIntensity:3, ' %');
+              writeln ('     ', cSLMType:4,   ' Pulse Mode     =        ', bPulseMode);
+              writeln ('     ', cSLMType:4,   ' Intensity      =       ',   0.1*wIntensity:3:1, ' %');
             end
             else begin
-              writeln ('     SLM FreqTrigMode  =      ??  (reading error)');
-              writeln ('     SLM Pulse Mode           ??  (reading error)');
-              writeln ('     SLM Intensity            ??  (reading error)');
+              writeln ('     ', cSLMType:4,   ' FreqTrigMode   =       ??  (reading error)');
+              writeln ('     ', cSLMType:4,   ' Pulse Mode     =       ??  (reading error)');
+              writeln ('     ', cSLMType:4,   ' Intensity      =       ??  (reading error)');
             end;
           end; // no error
         end; // get last FW error
