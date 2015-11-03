@@ -1,8 +1,8 @@
 # Demo Code for the PicoQuant Laser Driver API
 
-The necessary dll's and rivers can be downloaded here:
+The necessary dll's and drivers can be downloaded here:
 
-[[http://www.picoquant.com/dl_software/PQLaserDrv/PQLaserDrv_Software_v1_1_481.zip]]
+http://www.picoquant.com/dl_software/PQLaserDrv/PQLaserDrv_Software_v1_1_481.zip
 
 # Disclaimer
 
