@@ -28,10 +28,6 @@ removed from it.
 
 # Contact and Support
 
-PicoQuant GmbH
-Rudower Chaussee 29
-12489 Berlin, Germany
-Phone +49 30 6392 6929
-Fax   +49 30 6392 6561
+PicoQuant GmbH 
 
 https://support.picoquant.com
