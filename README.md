@@ -4,6 +4,10 @@ The necessary dll's and drivers can be downloaded here:
 
 http://www.picoquant.com/dl_software/PQLaserDrv/PQLaserDrv_Software_v1_1_481.zip
 
+The API manual is available here:
+
+https://www.picoquant.com/dl_manuals/PQLaserDrv_API_Manual.pdf
+
 # Disclaimer
 
 PicoQuant GmbH disclaims all warranties with regard to this software including
