@@ -1,0 +1,80 @@
+>> MATLAB_Sepia2_Lib_Demo
+SEPIA2_LIB_GetVersion ran OK:
+   Library Version = "1.2.64.767"
+   For support cases, please always mention the LIB version number
+
+SEPIA2_USB_OpenGetSerNumAndClose (0) ran OK:
+   Product="VisUV/IR", S/N="1043928"
+
+From now on, we take iDevIdx = 0  as USB index for our PQ-LaserDevice!
+
+SEPIA2_USB_OpenDevice ran OK:
+   Product="VisUV/IR", S/N="1043928"
+
+SEPIA2_USB_GetStrDescriptor ran OK:
+   cStringDescr = "PicoQuant, VisUV/IR, Build 0420, 1043928"
+
+SEPIA2_FWR_GetVersion ran OK:
+   Firmware Version = "1.05.420"
+   For support cases, please always mention the FWR version number
+
+SEPIA2_FWR_GetLastError ran OK:
+   Last firmware boot was error-free!
+   For support cases, please mention, that the  "Last Error"  block was clear!
+
+SEPIA2_FWR_GetModuleMap ran OK:
+   iModuleCount = 3
+
+We don't handle the FRMS backplane carrying slot 000
+
+There is a SCM module in slot 000:
+   Serial No.   = "1043928"
+   Label        = "SCM-828 "
+   Release Date = "19/11/11"
+   Revision     = "0.9"
+   Header Memo  = | SCM
+                  | DigiSUV
+
+There is a VIR module in slot 200:
+   Serial No.   = "1043928"
+   Label        = "VIR     "
+   Release Date = "20/08/24"
+   Revision     = "0.9"
+   Header Memo  = | DigiSUV
+                  | VisIR-1950-F
+
+SCM (slot 000) state:
+
+   Power LED        is on 
+   Laser Active LED is on 
+
+   Lasers are hard locked
+
+No SOM module found!
+
+No SLM modules found!
+
+VIR module (i.e. VisIR device) in Slot 200 found!
+
+VIR (slot 200) state:
+
+   device type      : "VisIR-1950-F"
+   options          : - CW         = no 
+                      - fan-switch = yes
+   trigger source   : idx = 1; i.e. "int. Lo:  1 MHz"
+   divider          : 2^1 = 2
+   frequency        : 500 kHz
+   intensity        : 80.0 %
+   fan running      : yes
+
+No Prima devices found!
+
+%-----------------------------------------------------------------------------
+  SupportRequestText was suppressed by user
+%-----------------------------------------------------------------------------
+
+SEPIA2_FWR_FreeModuleMap ran OK
+
+SEPIA2_USB_CloseDevice ran OK
+
+>> 

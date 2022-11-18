@@ -56,14 +56,21 @@
 //
 //  apo  01.10.15   removed some superfluous SPM info functions from API
 //
+//  apo  22.01.21   raised to DLL version 1.2.<target>.<svn_build>
+//                    due to USB driver changes
+//
+//  apo  25.01.21   introduced VIR, VUV module functions (for VisUV/IR) (V1.2.xx.641)
+//
+//  apo  05.07.21   introduced PRI module functions (for PUMUCL / Prima) (V1.2.xx.720)
+//
 //-----------------------------------------------------------------------------
 //
-#pragma message ("********************************  " __FILE__ " ***     Entering Declaration File...")
+//#pragma message ("********************************  " __FILE__ " ***     Entering Declaration File...")
 
 #ifndef   __SEPIA2_LIB_H__
   #define __SEPIA2_LIB_H__
 
-  #pragma message ("********************************  " __FILE__ " ***     Declaration Commencing...")
+//  #pragma message ("********************************  " __FILE__ " ***     Declaration Commencing...")
 
   #ifdef __linux__
     #define   __stdcall
@@ -71,19 +78,19 @@
 
   #ifndef   _INVOKED_BY_SEPIA2_DLL_
     #define   __declspec(X)   extern
-    #pragma message ("********************************  " __FILE__ " ***     Declaration extern (not invoked by declarator)")
+//    #pragma message ("********************************  " __FILE__ " ***     Declaration extern (not invoked by declarator)")
   #else
     #ifndef SEPIA2_DLL_EXPORTS
       #ifndef SEPIA2_DLL_IMPORTS
         #define __declspec(X)   extern
-        #pragma message ("********************************  " __FILE__ " ***     Declaration extern (neither import nor export)")
+//        #pragma message ("********************************  " __FILE__ " ***     Declaration extern (neither import nor export)")
       #else
         #define DIRECTION dllimport
-        #pragma message ("********************************  " __FILE__ " ***     Declaration Direction = dllimport")
+//        #pragma message ("********************************  " __FILE__ " ***     Declaration Direction = dllimport")
       #endif
     #else
       #define   DIRECTION dllexport
-        #pragma message ("********************************  " __FILE__ " ***     Declaration Direction = dllexport")
+//        #pragma message ("********************************  " __FILE__ " ***     Declaration Direction = dllexport")
     #endif
   #endif // _INVOKED_BY_SEPIA2_DLL_
 
@@ -92,6 +99,7 @@
 
   __declspec(DIRECTION)  int   __stdcall SEPIA2_LIB_DecodeError               (int iErrCode, char* cErrorString);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_LIB_GetVersion                (char* cLibVersion);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_LIB_GetLibUSBVersion          (char* cLibUSBVersion);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_LIB_IsRunningOnWine           (unsigned char* pbIsRunningOnWine);
 
 
@@ -100,6 +108,8 @@
   __declspec(DIRECTION)  int   __stdcall SEPIA2_USB_OpenDevice                (int iDevIdx,     char* cProductModel,     char* cSerialNumber);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_USB_OpenGetSerNumAndClose     (int iDevIdx,     char* cProductModel,     char* cSerialNumber);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_USB_GetStrDescriptor          (int iDevIdx,     char* cDescriptor);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_USB_GetStrDescrByIdx          (int iDevIdx,     int   iDescrIdx,         char* cDescriptor);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_USB_IsOpenDevice              (int iDevIdx,     unsigned char* pbIsOpenDevice);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_USB_CloseDevice               (int iDevIdx);
 
 
@@ -118,6 +128,7 @@
   __declspec(DIRECTION)  int   __stdcall SEPIA2_FWR_GetModuleMap              (int iDevIdx,     int   iPerformRestart, int*  piModuleCount);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_FWR_GetModuleInfoByMapIdx     (int iDevIdx,     int   iMapIdx,         int*  piSlotId,      unsigned char* pbIsPrimary, unsigned char* pbIsBackPlane,  unsigned char* pbHasUptimeCounter);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_FWR_GetUptimeInfoByMapIdx     (int iDevIdx,     int   iMapIdx,         unsigned long* pulMainPowerUp, unsigned long* pulActivePowerUp, unsigned long* pulScaledPowerUp);
+  //
   __declspec(DIRECTION)  int   __stdcall SEPIA2_FWR_CreateSupportRequestText  (int iDevIdx,     char* cPreamble,       char* cCallingSW, int iOptions, int iBufferLen, char* cBuffer);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_FWR_FreeModuleMap             (int iDevIdx);
 
@@ -127,6 +138,7 @@
   __declspec(DIRECTION)  int   __stdcall SEPIA2_COM_DecodeModuleType          (int iModuleType, char* cModulType);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_COM_DecodeModuleTypeAbbr      (int iModuleType, char* cModulTypeAbbr);
   //
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_COM_GetFormatVersion          (int iDevIdx,     int   iSlotId,  int   iGetPrimary,   word* pwFormatVersion);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_COM_GetModuleType             (int iDevIdx,     int   iSlotId,  int   iGetPrimary,   int* piModuleType);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_COM_HasSecondaryModule        (int iDevIdx,     int   iSlotId,  int*  piHasSecondary);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_COM_GetSerialNumber           (int iDevIdx,     int   iSlotId,  int   iGetPrimary,   char* cSerialNumber);
@@ -235,7 +247,6 @@
   //
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SOMD_FWReadPage               (int iDevIdx,     int   iSlotId,  unsigned short  iPageIdx, unsigned char* pbFWPage);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SOMD_FWWritePage              (int iDevIdx,     int   iSlotId,  unsigned short  iPageIdx, unsigned char* pbFWPage);
-  __declspec(DIRECTION)  int   __stdcall SEPIA2_SOMD_Calibrate                (int iDevIdx,     int   iSlotId,  unsigned char   bCalParam);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SOMD_GetHWParams              (int iDevIdx,     int   iSlotId,  unsigned short* pwHWParTemp1, unsigned short* pwHWParTemp2, unsigned short* pwHWParTemp3, unsigned short* pwHWParVolt1, unsigned short* pwHWParVolt2, unsigned short* pwHWParVolt3, unsigned short* pwHWParVolt4, unsigned short* pwHWParAUX);
 
 
@@ -246,7 +257,6 @@
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SWM_GetUIConstants            (int iDevIdx,     int   iSlotId,  unsigned char* bTBNdxCount, unsigned short* wMaxAmplitude, unsigned short* wMaxSlewRate, unsigned short* wExpRampEffect, unsigned short* wMinUserValue, unsigned short* wMaxUserValue, unsigned short* wUserResolution);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SWM_GetCurveParams            (int iDevIdx,     int   iSlotId,  int iCurveIdx, unsigned char* bTBNdx, unsigned short* wPAPml, unsigned short* wRRPml,   unsigned short* wPSPml, unsigned short* wRSPml, unsigned short* wWSPml);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SWM_SetCurveParams            (int iDevIdx,     int   iSlotId,  int iCurveIdx, unsigned char  bTBNdx, unsigned short  wPAPml, unsigned short  wRRPml,   unsigned short  wPSPml, unsigned short  wRSPml, unsigned short  wWSPml);
-  __declspec(DIRECTION)  int   __stdcall SEPIA2_SWM_GetCalTableVal            (int iDevIdx,     int   iSlotId,  char* cTableName, unsigned char bTabIdx, unsigned char bTabCol, unsigned short* wValue);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SWM_GetExtAtten               (int iDevIdx,     int   iSlotId,  float* fExtAtt);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SWM_SetExtAtten               (int iDevIdx,     int   iSlotId,  float  fExtAtt);
 
@@ -288,6 +298,7 @@
   #endif
 
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SPM_DecodeModuleState         (unsigned short wState, char* cStatusText);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_SPM_GetDeviceDescription      (int iDevIdx,     int   iSlotId,  char* pcDeviceDescription);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SPM_GetFWVersion              (int iDevIdx,     int   iSlotId,  unsigned long* pulFWVersion);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SPM_GetSensorData             (int iDevIdx,     int   iSlotId,  T_ptrSPM_SensorData   pSensorData);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SPM_GetTemperatureAdjust      (int iDevIdx,     int   iSlotId,  T_ptrSPM_Temperatures pTempAdjust);
@@ -333,7 +344,50 @@
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SSM_SetFRAMWriteProtect       (int iDevIdx,     int   iSlotId,  unsigned char   bWriteProtect);
   __declspec(DIRECTION)  int   __stdcall SEPIA2_SSM_GetFRAMWriteProtect       (int iDevIdx,     int   iSlotId,  unsigned char* pbWriteProtect);
 
+
+  // ---  VisUV/IR  VUV / VIR functions  ------------------------------------------
+
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_GetDeviceType         (int iDevIdx,     int   iSlotId,  char* pcDeviceType,     unsigned char* pbOptCW, unsigned char* pbOptFanSwitch);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_DecodeFreqTrigMode    (int iDevIdx,     int   iSlotId,  int    iMainTrigSrcIdx, int    iMainFreqDivIdx, char* pcMainFreqTrig, int*  piMainFreq, unsigned char* pbTrigDividerEnabled, unsigned char* pbTrigLevelEnabled);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_GetTrigLevelRange     (int iDevIdx,     int   iSlotId,  int*  piUpperTL,        int*  piLowerTL,        int*  piResolTL);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_GetTriggerData        (int iDevIdx,     int   iSlotId,  int*  piMainTrigSrcIdx, int*  piMainFreqDivIdx, int*  piTrigLevel);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_SetTriggerData        (int iDevIdx,     int   iSlotId,  int    iMainTrigSrcIdx, int    iMainFreqDivIdx, int    iTrigLevel);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_GetIntensityRange     (int iDevIdx,     int   iSlotId,  int*  piUpperIntens,    int*  piLowerIntens,    int*  piResolIntens);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_GetIntensity          (int iDevIdx,     int   iSlotId,  int*  piIntensity);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_SetIntensity          (int iDevIdx,     int   iSlotId,  int    iIntensity);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_GetFan                (int iDevIdx,     int   iSlotId,  unsigned char* pbFanRunning);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_VUV_VIR_SetFan                (int iDevIdx,     int   iSlotId,  unsigned char bFanRunning);
+
+
+  // ---  Prima  PRI functions  ------------------------------------------
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetDeviceInfo             (int iDevIdx,     int   iSlotId,  char* pcDeviceID,       char* pcDeviceType,  char*  pcFW_Version,   int*  piWL_Count);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_DecodeOperationMode       (int iDevIdx,     int   iSlotId,  int    iOperModeIdx,    char* pcOperMode);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetOperationMode          (int iDevIdx,     int   iSlotId,  int*  piOperModeIdx);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetOperationMode          (int iDevIdx,     int   iSlotId,  int    iOperModeIdx);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_DecodeTriggerSource       (int iDevIdx,     int   iSlotId,  int    iTrgSrcIdx,      char* pcTrgSrc,      unsigned char* pbFrequencyEnabled, unsigned char* pbTrigLevelEnabled);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetTriggerSource          (int iDevIdx,     int   iSlotId,  int*  piTrgSrcIdx);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetTriggerSource          (int iDevIdx,     int   iSlotId,  int    iTrgSrcIdx);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetTriggerLevelLimits     (int iDevIdx,     int   iSlotId,  int*  piTrg_MinLvl,     int*  piTrg_MaxLvl,  int*   piTrg_LvlRes);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetTriggerLevel           (int iDevIdx,     int   iSlotId,  int*  piTrgLevel);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetTriggerLevel           (int iDevIdx,     int   iSlotId,  int    iTrgLevel);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetFrequencyLimits        (int iDevIdx,     int   iSlotId,  int*  piMinFreq,        int*  piMaxFreq);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetFrequency              (int iDevIdx,     int   iSlotId,  int*  piFrequency);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetFrequency              (int iDevIdx,     int   iSlotId,  int    iFrequency);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetGatingLimits           (int iDevIdx,     int   iSlotId,  int*  piMinOnTime,      int*  piMaxOnTime,   int*  pbMinOffTimefactor,  int*  pbMaxOffTimefactor);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetGatingData             (int iDevIdx,     int   iSlotId,  int*  piOnTime,         int*  piOffTimefact);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetGatingData             (int iDevIdx,     int   iSlotId,  int    iOnTime,         int    iOffTimefact);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetGatingEnabled          (int iDevIdx,     int   iSlotId,  unsigned char* pbGatingEnabled);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetGatingEnabled          (int iDevIdx,     int   iSlotId,  unsigned char   bGatingEnabled);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetGateHighImpedance      (int iDevIdx,     int   iSlotId,  unsigned char* pbHighImpedance);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetGateHighImpedance      (int iDevIdx,     int   iSlotId,  unsigned char   bHighImpedance);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_DecodeWavelength          (int iDevIdx,     int   iSlotId,  int    iWLIdx,          int*  piWL);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetWavelengthIdx          (int iDevIdx,     int   iSlotId,  int*  piWLIdx);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetWavelengthIdx          (int iDevIdx,     int   iSlotId,  int    iWLIdx);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_GetIntensity              (int iDevIdx,     int   iSlotId,  int    iWLIdx,          word* pwIntensity);
+  __declspec(DIRECTION)  int   __stdcall SEPIA2_PRI_SetIntensity              (int iDevIdx,     int   iSlotId,  int    iWLIdx,          word   wIntensity);
+
+
 #endif // __SEPIA2_LIB_H__
 
-#pragma message ("********************************  " __FILE__ " ***     ...Leaving Declaration File")
+//#pragma message ("********************************  " __FILE__ " ***     ...Leaving Declaration File")
 

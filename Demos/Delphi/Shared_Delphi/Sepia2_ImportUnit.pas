@@ -4,7 +4,7 @@
 //
 //-----------------------------------------------------------------------------
 //
-//  Exports the Sepia 2  functions from Sepia2_lib.dll  V1.1.<xx>.<nnn>
+//  Exports the Sepia 2  functions from Sepia2_lib.dll  V1.2.<xx>.<nnn>
 //    <xx>  = 32: Sepia2_Lib for x86 target architecture;
 //    <xx>  = 64: Sepia2_Lib for x64 target architecture;
 //    <nnn> = SVN build number
@@ -52,28 +52,53 @@
 //  apo  26.03.15   introduced SWM Curve Visualisation
 //  apo  28.05.15   new FWR function creates service request text
 //  apo  01.10.15   removed some superfluous SPM info functions from API
+//  apo  24.05.16   introduced new SPM function GetDeviceDescription and
+//                    Get/SetOutputStageControl
+//  apo  06.06.16   enhanced debug strings by showing the input parameters
+//
+//  apo  19.10.20   additional functions for VisUV/IR Module (V1.1.xx.590)
+//  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  apo  15.01.21   raised library version to 1.2.xx.nnn due to some new API
+//                    functions and a new Windows USB driver
+//
+//  apo  12.07.21   additional functions for Prima Module (V1.2.xx.720)
+//
+//  apo  15.02.22   added type T_PRI_Constants and function SEPIA2_PRI_GetConstants
+//                    to substitute the missing-by-design index constants for Prima
 //
 //-----------------------------------------------------------------------------
 //
 
+
 unit Sepia2_ImportUnit;
+
+  //
+  // This switch disables Debug output of certain functions, used to be polled
+  {$define __POLLING_AWARE_AVOIDING_DEBUGOUT__}
+  // as there are:
+  //    SEPIA2_SCM_GetPowerAndLaserLEDS,
+  //    SEPIA2_SCM_GetLaserLocked, ...
+  //
 
 interface
 
 uses
-  System.SysUtils;
+  System.SysUtils, System.Classes;
 
   const
     STR_LIB_NAME                                = 'Sepia2_Lib.dll';
 
     {$ifdef __x64__}
-      LIB_VERSION_REFERENCE                     = '1.1.64.';       // minor low word (SVN-build) may be ignored
+      LIB_VERSION_REFERENCE_OLD                 = '1.1.64.';       // minor low word (SVN-build) may be ignored
+      LIB_VERSION_REFERENCE                     = '1.2.64.';       // minor low word (SVN-build) may be ignored
     {$else}
-      LIB_VERSION_REFERENCE                     = '1.1.32.';       // minor low word (SVN-build) may be ignored
+      LIB_VERSION_REFERENCE_OLD                 = '1.1.32.';       // minor low word (SVN-build) may be ignored
+      LIB_VERSION_REFERENCE                     = '1.2.32.';       // minor low word (SVN-build) may be ignored
     {$endif}
     LIB_VERSION_COMPLEN                         =     7;
 
-    FW_VERSION_REFERENCE                        = '1.05.';
+    FW_VERSION_REFERENCE_OLD                    = '1.05.';
+    FW_VERSION_REFERENCE                        = '2.01.';
     FW_VERSION_COMPLEN                          =     5;
 
   type
@@ -89,6 +114,11 @@ uses
 
     SEPIA2_MAX_USB_DEVICES                      =     8;
 
+    SEPIA2_USB_STRDSCR_IDX_VENDOR               =     1;
+    SEPIA2_USB_STRDSCR_IDX_MODEL                =     2;
+    SEPIA2_USB_STRDSCR_IDX_BUILD                =     3;
+    SEPIA2_USB_STRDSCR_IDX_SERIAL               =     4;
+
     SEPIA2_SCM_MAX_VOLTAGES                     =     8;
     SEPIA2_SCM_VOLTAGE_5V_POSITIVE_POWERSUPPLY  =     0;
     SEPIA2_SCM_VOLTAGE_5V_NEGATIVE_POWERSUPPLY  =     1;
@@ -98,6 +128,7 @@ uses
     SEPIA2_SCM_VOLTAGE_28V_POSITIVE_ON_BUS      =     5;
     SEPIA2_SCM_VOLTAGE_28V_POSITIVE_BEHIND_FUSE =     6;
     SEPIA2_SCM_VOLTAGE_28V_OFF_MAXIMUM_READ     =     2.97; //1.55;      // 1,55 V residual voltage permitted when key locked
+    SEPIA2_SCM_VOLTAGE_COUNT                    =     7;
 
     SEPIA2_RESTART                              =     true;
     SEPIA2_NO_RESTART                           =     false;
@@ -154,6 +185,13 @@ uses
     SEPIA2_SWS_MODULESTATE_LEN                  =    20;
     SEPIA2_SWS_MOTORNAME_LEN                    =    16;
     SEPIA2_SSM_FREQ_TRIGMODE_LEN                =    16;
+    SEPIA2_VUV_VIR_DEVICETYPE_LEN               =    32;
+    SEPIA2_VUV_VIR_TRIGINFO_LEN                 =    15;
+    SEPIA2_PRI_DEVICE_ID_LEN                    =     6;
+    SEPIA2_PRI_DEVICE_FW_LEN                    =     8;
+    SEPIA2_PRI_OPER_MODE_LEN                    =    15;
+    SEPIA2_PRI_WAVELENGTH_LEN                   =     9;
+    SEPIA2_PRI_TRIG_SRC_LEN                     =    16;
   //
   //
   //                                                      //               bit 7         6         5     4    3      2..0
@@ -174,8 +212,11 @@ uses
     SEPIA2OBJECT_SOMD                           =   $51;  // 0 1 01  0 001     module    primary   no    yes  d.c.   0-7    // for Sepia II: Oscillator Module with Delay Option
     SEPIA2OBJECT_SML                            =   $60;  // 0 1 10  0 000     module    primary   yes   no   d.c.   0-7    // for Sepia II: Multi-Laser Module
     SEPIA2OBJECT_VCL                            =   $61;  // 0 1 10  0 000     module    primary   yes   no   d.c.   0-7    // for PPL 400: Voltage Controlled Laser Module
-    SEPIA2OBJECT_SLM                            =   $70;  // 0 1 11  0 000     module    primary   yes   yes  d.c.          // for Sepia II: Laser Driver Module
-    SEPIA2OBJECT_SSM                            =   $71;  // 0 1 11  0 001     module    primary   yes   yes  d.c.          // for Solea: Seed Laser Module
+    SEPIA2OBJECT_SLM                            =   $70;  // 0 1 11  0 000     module    primary   yes   yes  d.c.   0-7    // for Sepia II: Laser Driver Module
+    SEPIA2OBJECT_SSM                            =   $71;  // 0 1 11  0 001     module    primary   yes   yes  d.c.   0-7    // for Solea: Seed Laser Module
+    SEPIA2OBJECT_VIR                            =   $72;  // 0 1 11  0 010     module    primary   yes   yes  d.c.   0-7    // for VisIR: Laser Module
+    SEPIA2OBJECT_VUV                            =   $73;  // 0 1 11  0 011     module    primary   yes   yes  d.c.   0-7    // for VisUV: Laser Module
+    SEPIA2OBJECT_PRI                            =   $74;  // 0 1 11  0 100     module    primary   yes   yes  d.c.   0-7    // for Prima: Laser Module
     SEPIA2OBJECT_FRMS                           =   $C0;  // 1 1 00  0 000     backplane primary   no    no   small         // Main Frame small
     SEPIA2OBJECT_FRML                           =   $C8;  // 1 1 00  1 000     backplane primary   no    no   large         // Main Frame large
     SEPIA2OBJECT_FAIL                           =   $FF;
@@ -249,7 +290,6 @@ const
     SEPIA2_SOMD_STATE_FWUPDATERUNNING           = $0020; // Firmware update running
     SEPIA2_SOMD_STATE_FRAM_WRITEPROTECTED       = $0040; // FRAM is write protected = 1, FRAM write enabled = 0
     SEPIA2_SOMD_STATE_PLL_UNSTABLE              = $0080; // PLL is not stable after changing the base oscillator or trigger mode
-                                                         // ???
     SEPIA2_SOMD_STATEMASK_NOT_FUNCTIONAL        = $0013; // SEPIA2_SOMD_STATE_INIT + SEPIA2_SOMD_STATE_BUSY + SEPIA2_SOMD_STATE_HARDWAREERROR
 
 
@@ -383,7 +423,11 @@ const
 
   var
     strLibVersion      : string;
+    strLibUSBVersion   : string;
     bSepia2ImportLibOK : Boolean;
+    iDLLFuncsCount     : integer;
+    strCount           : string;
+    strReason          : string;
 
 
   // ---  library functions  ----------------------------------------------------
@@ -398,7 +442,8 @@ const
   function SEPIA2_USB_CloseDevice               (iDevIdx: integer) : integer;
   function SEPIA2_USB_GetStrDescriptor          (iDevIdx: integer; var cDescriptor: string) : integer;
   function SEPIA2_USB_OpenGetSerNumAndClose     (iDevIdx: integer; var cProductModel: string; var cSerialNumber: string) : integer;
-
+  function SEPIA2_USB_IsOpenDevice              (iDevIdx: integer; var bIsOpenDevice : boolean) : integer;
+  function SEPIA2_USB_GetStrDescrByIdx          (iDevIdx: integer; iDescrIdx: integer; var cDescriptor: string) : integer;
 
   // ---  firmware functions  ---------------------------------------------------
 
@@ -526,7 +571,6 @@ const
   function SEPIA2_SWM_SetCurveParams            (iDevIdx, iSlotId: integer; iCurveIdx: integer; byteTBIdx: byte; wPAPml, wRRPml, wPSPml, wRSPml, wWSPml: word) : integer;
   function SEPIA2_SWM_GetExtAtten               (iDevIdx, iSlotId: integer; var fExtAtt: Single) : integer;
   function SEPIA2_SWM_SetExtAtten               (iDevIdx, iSlotId: integer; fExtAtt: Single) : integer;
-  function SEPIA2_SWM_GetCalTableVal            (iDevIdx, iSlotId: integer; cTableName: string; byteTabRow, byteTabCol: byte; var wValue: word) : integer;
 
 
   // ---  VCL 828 (PPL 400) functions  -------------------------------------------
@@ -564,6 +608,7 @@ const
 
 
   function SEPIA2_SPM_DecodeModuleState         (wModuleState: word;        var cModuleState: string) : integer;
+  function SEPIA2_SPM_GetDeviceDescription      (iDevIdx, iSlotId: integer; var cDeviceDescription: string) : integer;
   function SEPIA2_SPM_GetFWVersion              (iDevIdx, iSlotId: integer; var FWVersion: T_SepiaModules_FWVersion) : integer;
   function SEPIA2_SPM_GetSensorData             (iDevIdx, iSlotId: integer; var SensorData: T_SPM_SensorData) : integer;
   function SEPIA2_SPM_GetTemperatureAdjust      (iDevIdx, iSlotId: integer; var Temperatures: T_SPM_Temperatures) : integer;
@@ -608,19 +653,111 @@ const
   function SEPIA2_SSM_GetFRAMWriteProtect       (iDevIdx, iSlotId: integer; var bWriteProtect: boolean) : integer;
   function SEPIA2_SSM_SetFRAMWriteProtect       (iDevIdx, iSlotId: integer; bWriteProtect: boolean) : integer;
 
+  // --- VisUV/IR functions  ----------------------------------------------------
+
+  function SEPIA2_VUV_VIR_GetDeviceType         (iDevIdx, iSlotId: integer; var cDeviceType: string; var bOptCW, bOptFanSwitch: boolean) : integer;
+  function SEPIA2_VUV_VIR_DecodeFreqTrigMode    (iDevIdx, iSlotId: integer; iTrigSourceIdx, iFreqDividerIdx: integer; var cFreqTrigMode: string; var iMainFreq: integer; var bEnableDivList, bEnableTrigLvl: boolean) : integer;
+  function SEPIA2_VUV_VIR_GetTrigLevelRange     (iDevIdx, iSlotId: integer; var iUpperTrigLevel, iLowerTrigLevel, iTrigLevelResol: integer) : integer;
+  function SEPIA2_VUV_VIR_GetTriggerData        (iDevIdx, iSlotId: integer; var iTrigSrcIdx, iFreqDivIdx, iTrigLevel: integer) : integer;
+  function SEPIA2_VUV_VIR_SetTriggerData        (iDevIdx, iSlotId: integer; iTrigSrcIdx, iFreqDivIdx, iTrigLevel: integer) : integer;
+  function SEPIA2_VUV_VIR_GetIntensityRange     (iDevIdx, iSlotId: integer; var iUpperIntens, iLowerIntens, iIntensResol: integer) : integer;
+  function SEPIA2_VUV_VIR_GetIntensity          (iDevIdx, iSlotId: integer; var iIntensity: integer) : integer;
+  function SEPIA2_VUV_VIR_SetIntensity          (iDevIdx, iSlotId: integer; iIntensity: integer) : integer;
+  function SEPIA2_VUV_VIR_GetFan                (iDevIdx, iSlotId: integer; var bFanRunning: boolean) : integer;
+  function SEPIA2_VUV_VIR_SetFan                (iDevIdx, iSlotId: integer; bFanRunning: boolean) : integer;
+
+  // --- Prima functions  ----------------------------------------------------
+  type
+    T_PRI_Constants = record
+      bInitialized: Boolean;
+      //
+      PrimaModuleID: string;
+      PrimaModuleType: string;
+      PrimaFWVers: string;
+      //
+      PrimaTemp_min: Single;
+      PrimaTemp_max: Single;
+      //
+      // bis hierher    init mit $00
+      // --- - - - - - - - - - - ---  Initialisierungsgrenze
+      // ab hier        init mit $FF
+      //
+      PrimaUSBIdx: Integer;
+      PrimaSlotId: Integer;
+      //
+      PrimaWLCount: Integer;
+      PrimaWLs: array [0..2] of Integer;
+      //
+      PrimaOpModCount: Integer;
+      PrimaOpModOff: Integer;
+      PrimaOpModNarrow: Integer;
+      PrimaOpModBroad: Integer;
+      PrimaOpModCW: Integer;
+      //
+      PrimaTrSrcCount: Integer;
+      PrimaTrSrcInt: Integer;
+      PrimaTrSrcExtNIM: Integer;
+      PrimaTrSrcExtTTL: Integer;
+      PrimaTrSrcExtFalling: Integer;
+      PrimaTrSrcExtRising: Integer;
+    end;
+
+  function SEPIA2_PRI_GetConstants              (iDevIdx, iSlotId: integer; var PRIConstants: T_PRI_Constants) : integer;
+
+  function SEPIA2_PRI_GetDeviceInfo             (iDevIdx, iSlotId: integer; var cPRIModuleID: string; var cPRIModuleType: string; var cFW_Vers: string; var iWLCount: integer) : integer;
+  function SEPIA2_PRI_DecodeOperationMode       (iDevIdx, iSlotId: integer; iOpModeIdx: integer; var cOpMode: string) : integer;
+  function SEPIA2_PRI_GetOperationMode          (iDevIdx, iSlotId: integer; var iOpModeIdx: integer) : integer;
+  function SEPIA2_PRI_SetOperationMode          (iDevIdx, iSlotId: integer; iOpModeIdx: integer) : integer;
+  function SEPIA2_PRI_DecodeTriggerSource       (iDevIdx, iSlotId: integer; iTrgSrcIdx: integer; var cTrgSrc: string; var bEnableFrequency, bEnableTrigLvl: boolean) : integer;
+  function SEPIA2_PRI_GetTriggerSource          (iDevIdx, iSlotId: integer; var iTrgSrcIdx: integer) : integer;
+  function SEPIA2_PRI_SetTriggerSource          (iDevIdx, iSlotId: integer; iTrgSrcIdx: integer) : integer;
+  function SEPIA2_PRI_GetTriggerLevelLimits     (iDevIdx, iSlotId: integer; var iTrgMinLvl: integer; var iTrgMaxLvl: integer; var iTrgLvlRes: integer) : integer;
+  function SEPIA2_PRI_GetTriggerLevel           (iDevIdx, iSlotId: integer; var iTrgLevel: integer) : integer;
+  function SEPIA2_PRI_SetTriggerLevel           (iDevIdx, iSlotId: integer; iTrgLevel: integer) : integer;
+  function SEPIA2_PRI_GetFrequencyLimits        (iDevIdx, iSlotId: integer; var iMinFreq: integer; var iMaxFreq: integer) : integer;
+  function SEPIA2_PRI_GetFrequency              (iDevIdx, iSlotId: integer; var iFrequency: integer) : integer;
+  function SEPIA2_PRI_SetFrequency              (iDevIdx, iSlotId: integer; iFrequency: integer) : integer;
+
+  function SEPIA2_PRI_GetGatingLimits           (iDevIdx, iSlotId: integer; var iMinOnTime: integer; var iMaxOnTime: integer; var iMinOffTimefactor: integer; var iMaxOffTimefactor: integer) : integer;
+  function SEPIA2_PRI_GetGatingData             (iDevIdx, iSlotId: integer; var iOnTime: integer; var iOffTimefact: integer) : integer;
+  function SEPIA2_PRI_SetGatingData             (iDevIdx, iSlotId: integer; iOnTime, iOffTimefact: integer) : integer;
+  function SEPIA2_PRI_GetGatingEnabled          (iDevIdx, iSlotId: integer; var bGatingEnabled: boolean) : integer;
+  function SEPIA2_PRI_SetGatingEnabled          (iDevIdx, iSlotId: integer; bGatingEnabled: boolean) : integer;
+  function SEPIA2_PRI_GetGateHighImpedance      (iDevIdx, iSlotId: integer; var bHighImp: boolean) : integer;
+  function SEPIA2_PRI_SetGateHighImpedance      (iDevIdx, iSlotId: integer; bHighImp: boolean) : integer;
+  function SEPIA2_PRI_DecodeWavelength          (iDevIdx, iSlotId: integer; iWLIdx: integer; var iWL: integer) : integer;
+  function SEPIA2_PRI_GetWavelengthIdx          (iDevIdx, iSlotId: integer; var iWLIdx: integer) : integer;
+  function SEPIA2_PRI_SetWavelengthIdx          (iDevIdx, iSlotId: integer; iWLIdx: integer) : integer;
+  function SEPIA2_PRI_GetIntensity              (iDevIdx, iSlotId: integer; iWLIdx: integer; var wIntensity: word) : integer;
+  function SEPIA2_PRI_SetIntensity              (iDevIdx, iSlotId: integer; iWLIdx: integer; wIntensity: word) : integer;
+
 
   procedure DebugOut (const iDir : Integer; const strIn : string; iRetVal : integer = 0); overload;
   procedure DebugOut (const iDir : Integer; const strIn : string; cAdditionalStr : string); overload;
 
+  function GetDLLFunction (Name: PAnsiChar; Default: Pointer = nil): pointer;
+
   var
-    bActiveDebugOut : boolean;
-    fsDecode        : TFormatSettings;
+    bActiveDebugOut     : boolean;
+    FormatSettings_enUS : TFormatSettings;
+    hdlDLL              : THandle;
+    strCurLibName       : string;
+  {$ifdef __CALL_DEBUGOUT__}
+    arrDebugModules     : array [T_SEPIA2_MODULE_INDEX] of boolean;
+  {$endif}
+
+  const
+    PRI_TempADCRegIdx                                 =    3;                         // Temp ADC Register in Prima-modules
+    PRI_SupPnts_TECRefVoltage                         =    3.3;                       // V
+    PRI_SupPnts_Temperature : array [0..3] of Single  =  (15.0, 20.0, 30.0, 42.0);    // °C
+    PRI_SupPnts_TECRegValue : array [0..3] of Word    =  ($000, $0BA, $1F0, $3FF);    // DAC-Steps
+
 
 implementation
 
   uses
-    WinApi.Windows,
-    System.StrUtils, System.Math,
+    WinAPI.Windows,
+    System.StrUtils, System.Math, System.AnsiStrings,
     Sepia2_ErrorCodes;
 
   const
@@ -641,10 +778,10 @@ implementation
 
   var
     iRet    : integer;
-    strTemp : string;
 
   type
     T_SEPIA2_LIB_GetVersion                = function (pcLibVersion: pAnsiChar) : integer; stdcall;
+    T_SEPIA2_LIB_GetLibUSBVersion          = function (pcLibUSBVersion: pAnsiChar) : integer; stdcall;
     T_SEPIA2_LIB_IsRunningOnWine           = function (var byteIsRunningOnWine: byte) : integer; stdcall;
     T_SEPIA2_LIB_DecodeError               = function (iErrCode: integer; pcErrorString: pAnsiChar) : integer; stdcall;
 
@@ -652,6 +789,8 @@ implementation
     T_SEPIA2_USB_CloseDevice               = function (iDevIdx: integer) : integer; stdcall;
     T_SEPIA2_USB_GetStrDescriptor          = function (iDevIdx: integer; pcDescriptor: pAnsiChar) : integer; stdcall;
     T_SEPIA2_USB_OpenGetSerNumAndClose     = function (iDevIdx: integer; pcProductModel: pAnsiChar; pcSerialNumber: pAnsiChar) : integer; stdcall;
+    T_SEPIA2_USB_IsOpenDevice              = function (iDevIdx: integer; var byteIsOpenDevice: byte) : integer; stdcall;
+    T_SEPIA2_USB_GetStrDescrByIdx          = function (iDevIdx: integer; iDescrIdx: integer; pcDescriptor: pAnsiChar) : integer; stdcall;
 
     T_SEPIA2_FWR_GetVersion                = function (iDevIdx: integer; pcFWVersion: pAnsiChar) : integer; stdcall;
     T_SEPIA2_FWR_GetLastError              = function (iDevIdx: integer; var iErrCode, iPhase, iLocation, iSlot: integer; pcCondition: pAnsiChar) : integer; stdcall;
@@ -696,13 +835,13 @@ implementation
 {$endif}
     //
     T_SEPIA2_SLM_GetIntensityFineStep      = function (iDevIdx, iSlotId: integer; var wIntensity: word) : integer; stdcall;
-    T_SEPIA2_SLM_SetIntensityFineStep      = function (iDevIdx, iSlotId, wIntensity: word) : integer; stdcall;
+    T_SEPIA2_SLM_SetIntensityFineStep      = function (iDevIdx, iSlotId: integer; wIntensity: word) : integer; stdcall;
     T_SEPIA2_SLM_GetPulseParameters        = function (iDevIdx, iSlotId: integer; var iFreq: integer; var bytePulseMode: byte; var iHeadType: integer) : integer; stdcall;
     T_SEPIA2_SLM_SetPulseParameters        = function (iDevIdx, iSlotId, iFreq: integer; bytePulseMode: byte) : integer; stdcall;
 
     T_SEPIA2_SML_DecodeHeadType            = function (iHeadType: integer; pcHeadType: pAnsiChar) : integer; stdcall;
     T_SEPIA2_SML_GetParameters             = function (iDevIdx, iSlotId: integer; var bytePulseMode: byte; var iHead: integer; var byteIntensity: byte) : integer; stdcall;
-    T_SEPIA2_SML_SetParameters             = function (iDevIdx, iSlotId, bytePulseMode, byteIntensity: byte) : integer; stdcall;
+    T_SEPIA2_SML_SetParameters             = function (iDevIdx, iSlotId: integer; bytePulseMode, byteIntensity: byte) : integer; stdcall;
 
     T_SEPIA2_SOM_DecodeFreqTrigMode        = function (iDevIdx, iSlotId, iFreqTrigIdx: integer; pcFreqTrigMode: pAnsiChar) : integer; stdcall;
     T_SEPIA2_SOM_GetFreqTrigMode           = function (iDevIdx, iSlotId: integer; var iFreqTrigIdx: integer) : integer; stdcall;
@@ -748,7 +887,6 @@ implementation
     T_SEPIA2_SOMD_FWReadPage               = function (iDevIdx, iSlotId: integer; wPageIdx: word; var FWPage: T_SOMD_FW_PAGE) : integer; stdcall;
     T_SEPIA2_SOMD_FWWritePage              = function (iDevIdx, iSlotId: integer; wPageIdx: word; const FWPage: T_SOMD_FW_PAGE) : integer; stdcall;
     T_SEPIA2_SOMD_GetHWParams              = function (iDevIdx, iSlotId: integer; var wHWParamTemp1, wHWParamTemp2, wHWParamTemp3, wHWParamVolt1, wHWParamVolt2, wHWParamVolt3, wHWParamVolt4, wHWParamAUX : word) : integer; stdcall;
-    T_SEPIA2_SOMD_Calibrate                = function (iDevIdx, iSlotId: integer; byteCalParam: byte) : integer; stdcall;
 
     T_SEPIA2_SWM_DecodeRangeIdx            = function (iDevIdx, iSlotId: integer; iRangeIdx: integer; var iUpperLimit: integer) : integer; stdcall;
     T_SEPIA2_SWM_GetUIConstants            = function (iDevIdx, iSlotId: integer; var byteTBIdxCount: byte; var wMaxAmplitude, wMaxSlewRate, wExpRampEffect, wMinUserValue, wMaxUserValue, wUserResolution: word) : integer; stdcall;
@@ -756,17 +894,15 @@ implementation
     T_SEPIA2_SWM_SetCurveParams            = function (iDevIdx, iSlotId: integer; iCurveIdx: integer;     byteTBIdx: byte;     wPAPml, wRRPml, wPSPml, wRSPml, wWSPml: word) : integer; stdcall;
     T_SEPIA2_SWM_GetExtAtten               = function (iDevIdx, iSlotId: integer; var fExtAtt: Single) : integer; stdcall;
     T_SEPIA2_SWM_SetExtAtten               = function (iDevIdx, iSlotId: integer; fExtAtt: Single) : integer; stdcall;
-    T_SEPIA2_SWM_GetCalTableVal            = function (iDevIdx, iSlotId: integer; pcTableName: pAnsiChar; byteTabRow, byteTabCol: byte; var wValue: word) : integer; stdcall;
-    T_SEPIA2_SWM_SetCalTableVal            = function (iDevIdx, iSlotId: integer; pcTableName: pAnsiChar; byteTabRow, byteTabCol: byte;     wValue: word) : integer; stdcall;
 
     T_SEPIA2_VCL_GetUIConstants            = function (iDevIdx, iSlotId: integer; var iMinUserValueTmp, iMaxUserValueTmp, iUserResolutionTmp : integer) : integer; stdcall;
     T_SEPIA2_VCL_GetTemperature            = function (iDevIdx, iSlotId: integer; var iTemperature : integer) : integer; stdcall;
     T_SEPIA2_VCL_SetTemperature            = function (iDevIdx, iSlotId: integer; iTemperature : integer) : integer; stdcall;
     T_SEPIA2_VCL_GetBiasVoltage            = function (iDevIdx, iSlotId: integer; var iBiasVoltage : integer) : integer; stdcall;
-    T_SEPIA2_VCL_SetBiasVoltage            = function (iDevIdx, iSlotId: integer; iBiasVoltage : integer) : integer; stdcall;
 
     T_SEPIA2_SPM_DecodeModuleState         = function (wModuleState: Word; pcModuleState: pAnsiChar) : integer; stdcall;
     T_SEPIA2_SPM_GetFWVersion              = function (iDevIdx, iSlotId: integer; var ulFWVersion: Cardinal) : integer; stdcall;
+    T_SEPIA2_SPM_GetDeviceDescription      = function (iDevIdx, iSlotId: integer; pcDeviceDescription: pAnsiChar) : integer; stdcall;
     T_SEPIA2_SPM_GetSensorData             = function (iDevIdx, iSlotId: integer; var SensorData : T_SPM_SensorData) : integer; stdcall;
     T_SEPIA2_SPM_GetTemperatureAdjust      = function (iDevIdx, iSlotId: integer; var Temperatures : T_SPM_Temperatures) : integer; stdcall;
     T_SEPIA2_SPM_GetStatusError            = function (iDevIdx, iSlotId: integer; var wModuleState: word; var iErrorCode: SmallInt) : integer; stdcall;
@@ -804,20 +940,59 @@ implementation
     T_SEPIA2_SSM_GetFRAMWriteProtect       = function (iDevIdx, iSlotId: integer; var byteWriteProtect: byte) : integer; stdcall;
     T_SEPIA2_SSM_SetFRAMWriteProtect       = function (iDevIdx, iSlotId: integer; byteWriteProtect: byte) : integer; stdcall;
 
+    T_SEPIA2_VUV_VIR_GetDeviceType         = function (iDevIdx, iSlotId: integer; pcDeviceType: pAnsiChar; var byteOptCW: byte; var byteOptFanSwitch: byte) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_DecodeFreqTrigMode    = function (iDevIdx, iSlotId: integer; iTrigSrcIdx, iFreqDivIdx: integer; pcFreqTrigMode: pAnsiChar; var iMainFreq: integer; var byteEnableDivList, byteEnableTrigLvl: byte) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_GetTrigLevelRange     = function (iDevIdx, iSlotId: integer; var iUpperTL, iLowerTL, iTLResol: integer) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_GetTriggerData        = function (iDevIdx, iSlotId: integer; var iTrigSrcIdx, iFreqDivIdx, iTrigLevel: integer) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_SetTriggerData        = function (iDevIdx, iSlotId: integer; iTrigSrcIdx, iFreqDivIdx, iTrigLevel: integer) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_GetIntensityRange     = function (iDevIdx, iSlotId: integer; var iUpperIntens, iLowerIntens, iIntensResol: integer) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_GetIntensity          = function (iDevIdx, iSlotId: integer; var iIntensity: integer) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_SetIntensity          = function (iDevIdx, iSlotId: integer; iIntensity: integer) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_GetFan                = function (iDevIdx, iSlotId: integer; var byteFanRunning: byte) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_SetFan                = function (iDevIdx, iSlotId: integer; byteFanRunning: byte) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_GetPumpData           = function (iDevIdx, iSlotId: integer; iRegisterIdx: integer; var iRegisterVal: integer) : integer; stdcall;
+    T_SEPIA2_VUV_VIR_SetPumpData           = function (iDevIdx, iSlotId: integer; iRegisterIdx, iRegisterVal: integer) : integer; stdcall;
+
+    T_SEPIA2_PRI_GetDeviceInfo             = function (iDevIdx, iSlotId: integer; pcPRIModulID: pAnsiChar; pcPRIModulType: pAnsiChar; pcFW_Vers: pAnsiChar; var iWLCount: integer) : integer; stdcall;
+    T_SEPIA2_PRI_DecodeOperationMode       = function (iDevIdx, iSlotId: integer; iOpModeIdx: integer; pcOpMode: pAnsiChar) : integer; stdcall;
+    T_SEPIA2_PRI_GetOperationMode          = function (iDevIdx, iSlotId: integer; var iOpModeIdx: integer) : integer; stdcall;
+    T_SEPIA2_PRI_SetOperationMode          = function (iDevIdx, iSlotId: integer; iOpModeIdx: integer) : integer; stdcall;
+    T_SEPIA2_PRI_DecodeTriggerSource       = function (iDevIdx, iSlotId: integer; iTrgSrcIdx: integer; pcTrgSrc: pAnsiChar; var byteEnableFrequency, byteEnableTrigLvl: byte) : integer; stdcall;
+    T_SEPIA2_PRI_GetTriggerSource          = function (iDevIdx, iSlotId: integer; var iTrgSrcIdx: integer) : integer; stdcall;
+    T_SEPIA2_PRI_SetTriggerSource          = function (iDevIdx, iSlotId: integer; iTrgSrcIdx: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetTriggerLevelLimits     = function (iDevIdx, iSlotId: integer; var iTrgMinLvl: integer; var iTrgMaxLvl: integer; var iTrgLvlRes: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetTriggerLevel           = function (iDevIdx, iSlotId: integer; var iTrgLvl: integer) : integer; stdcall;
+    T_SEPIA2_PRI_SetTriggerLevel           = function (iDevIdx, iSlotId: integer; iTrgLvl: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetFrequencyLimits        = function (iDevIdx, iSlotId: integer; var iMinFreq: integer; var iMaxFreq: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetFrequency              = function (iDevIdx, iSlotId: integer; var iFrequency: integer) : integer; stdcall;
+    T_SEPIA2_PRI_SetFrequency              = function (iDevIdx, iSlotId: integer; iFrequency: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetGatingLimits           = function (iDevIdx, iSlotId: integer; var iMinOnTime: integer; var iMaxOnTime: integer; var iMinOffTimefactor: integer; var iMaxOffTimefactor) : integer; stdcall;
+    T_SEPIA2_PRI_GetGatingData             = function (iDevIdx, iSlotId: integer; var iOnTime: integer; var iOffTimefact: integer) : integer; stdcall;
+    T_SEPIA2_PRI_SetGatingData             = function (iDevIdx, iSlotId: integer; iOnTime, iOffTimefact: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetGatingEnabled          = function (iDevIdx, iSlotId: integer; var bGatingEnabled: byte) : integer; stdcall;
+    T_SEPIA2_PRI_SetGatingEnabled          = function (iDevIdx, iSlotId: integer; bGatingEnabled: byte) : integer; stdcall;
+    T_SEPIA2_PRI_GetGateHighImpedance      = function (iDevIdx, iSlotId: integer; var byteHighImp: byte) : integer; stdcall;
+    T_SEPIA2_PRI_SetGateHighImpedance      = function (iDevIdx, iSlotId: integer; byteHighImp: byte) : integer; stdcall;
+    T_SEPIA2_PRI_DecodeWavelength          = function (iDevIdx, iSlotId: integer; iWLIdx: integer; var iWL: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetWavelengthIdx          = function (iDevIdx, iSlotId: integer; var iWLIdx: integer) : integer; stdcall;
+    T_SEPIA2_PRI_SetWavelengthIdx          = function (iDevIdx, iSlotId: integer; iWLIdx: integer) : integer; stdcall;
+    T_SEPIA2_PRI_GetIntensity              = function (iDevIdx, iSlotId: integer; iWLIdx: integer; var wIntensity: word) : integer; stdcall;
+    T_SEPIA2_PRI_SetIntensity              = function (iDevIdx, iSlotId: integer; iWLIdx: integer; wIntensity: word) : integer; stdcall;
 
 
   const
-    TEMPVAR_LENGTH     =  1025;
-    TEMPLONGVAR_LENGTH = 65537;
+    TEMPVAR_LENGTH                         =     1025;
+    TEMPLONGVAR_LENGTH                     =   262145;  // 65537;  // reicht manchmal nicht aus, z.B. bei SupportRequest auf MatLab-Rechnern...
 
   var
     pcTmpVal1                             : pAnsiChar;
     pcTmpVal2                             : pAnsiChar;
+    pcTmpVal3                             : pAnsiChar;
     pcTmpLongVal1                         : pAnsiChar;
     pcTmpLongVal2                         : pAnsiChar;
-    hdlDLL                                : THandle;
 
     _SEPIA2_LIB_GetVersion                : T_SEPIA2_LIB_GetVersion;
+    _SEPIA2_LIB_GetLibUSBVersion          : T_SEPIA2_LIB_GetLibUSBVersion;
     _SEPIA2_LIB_IsRunningOnWine           : T_SEPIA2_LIB_IsRunningOnWine;
     _SEPIA2_LIB_DecodeError               : T_SEPIA2_LIB_DecodeError;
 
@@ -825,6 +1000,8 @@ implementation
     _SEPIA2_USB_CloseDevice               : T_SEPIA2_USB_CloseDevice;
     _SEPIA2_USB_GetStrDescriptor          : T_SEPIA2_USB_GetStrDescriptor;
     _SEPIA2_USB_OpenGetSerNumAndClose     : T_SEPIA2_USB_OpenGetSerNumAndClose;
+    _SEPIA2_USB_IsOpenDevice              : T_SEPIA2_USB_IsOpenDevice;
+    _SEPIA2_USB_GetStrDescrByIdx          : T_SEPIA2_USB_GetStrDescrByIdx;
 
     _SEPIA2_FWR_GetVersion                : T_SEPIA2_FWR_GetVersion;
     _SEPIA2_FWR_GetLastError              : T_SEPIA2_FWR_GetLastError;
@@ -919,7 +1096,6 @@ implementation
     _SEPIA2_SOMD_FWReadPage               : T_SEPIA2_SOMD_FWReadPage;
     _SEPIA2_SOMD_FWWritePage              : T_SEPIA2_SOMD_FWWritePage;
     _SEPIA2_SOMD_GetHWParams              : T_SEPIA2_SOMD_GetHWParams;
-    _SEPIA2_SOMD_Calibrate                : T_SEPIA2_SOMD_Calibrate;
 
     _SEPIA2_SWM_DecodeRangeIdx            : T_SEPIA2_SWM_DecodeRangeIdx;
     _SEPIA2_SWM_GetUIConstants            : T_SEPIA2_SWM_GetUIConstants;
@@ -927,16 +1103,14 @@ implementation
     _SEPIA2_SWM_SetCurveParams            : T_SEPIA2_SWM_SetCurveParams;
     _SEPIA2_SWM_GetExtAtten               : T_SEPIA2_SWM_GetExtAtten;
     _SEPIA2_SWM_SetExtAtten               : T_SEPIA2_SWM_SetExtAtten;
-    _SEPIA2_SWM_GetCalTableVal            : T_SEPIA2_SWM_GetCalTableVal;
-    _SEPIA2_SWM_SetCalTableVal            : T_SEPIA2_SWM_SetCalTableVal;
 
     _SEPIA2_VCL_GetUIConstants            : T_SEPIA2_VCL_GetUIConstants;
     _SEPIA2_VCL_GetTemperature            : T_SEPIA2_VCL_GetTemperature;
     _SEPIA2_VCL_SetTemperature            : T_SEPIA2_VCL_SetTemperature;
     _SEPIA2_VCL_GetBiasVoltage            : T_SEPIA2_VCL_GetBiasVoltage;
-    _SEPIA2_VCL_SetBiasVoltage            : T_SEPIA2_VCL_SetBiasVoltage;
 
     _SEPIA2_SPM_DecodeModuleState         : T_SEPIA2_SPM_DecodeModuleState;
+    _SEPIA2_SPM_GetDeviceDescription      : T_SEPIA2_SPM_GetDeviceDescription;
     _SEPIA2_SPM_GetFWVersion              : T_SEPIA2_SPM_GetFWVersion;
     _SEPIA2_SPM_GetSensorData             : T_SEPIA2_SPM_GetSensorData;
     _SEPIA2_SPM_GetTemperatureAdjust      : T_SEPIA2_SPM_GetTemperatureAdjust;
@@ -975,8 +1149,44 @@ implementation
     _SEPIA2_SSM_GetFRAMWriteProtect       : T_SEPIA2_SSM_GetFRAMWriteProtect;
     _SEPIA2_SSM_SetFRAMWriteProtect       : T_SEPIA2_SSM_SetFRAMWriteProtect;
 
+    _SEPIA2_VUV_VIR_GetDeviceType         : T_SEPIA2_VUV_VIR_GetDeviceType;
+    _SEPIA2_VUV_VIR_DecodeFreqTrigMode    : T_SEPIA2_VUV_VIR_DecodeFreqTrigMode;
+    _SEPIA2_VUV_VIR_GetTrigLevelRange     : T_SEPIA2_VUV_VIR_GetTrigLevelRange;
+    _SEPIA2_VUV_VIR_GetTriggerData        : T_SEPIA2_VUV_VIR_GetTriggerData;
+    _SEPIA2_VUV_VIR_SetTriggerData        : T_SEPIA2_VUV_VIR_SetTriggerData;
+    _SEPIA2_VUV_VIR_GetIntensityRange     : T_SEPIA2_VUV_VIR_GetIntensityRange;
+    _SEPIA2_VUV_VIR_GetIntensity          : T_SEPIA2_VUV_VIR_GetIntensity;
+    _SEPIA2_VUV_VIR_SetIntensity          : T_SEPIA2_VUV_VIR_SetIntensity;
+    _SEPIA2_VUV_VIR_GetFan                : T_SEPIA2_VUV_VIR_GetFan;
+    _SEPIA2_VUV_VIR_SetFan                : T_SEPIA2_VUV_VIR_SetFan;
 
-  procedure DebugOut (const iDir : Integer; const strIn : string; iRetVal : integer = 0);
+    _SEPIA2_PRI_GetDeviceInfo             : T_SEPIA2_PRI_GetDeviceInfo;
+    _SEPIA2_PRI_DecodeOperationMode       : T_SEPIA2_PRI_DecodeOperationMode;
+    _SEPIA2_PRI_GetOperationMode          : T_SEPIA2_PRI_GetOperationMode;
+    _SEPIA2_PRI_SetOperationMode          : T_SEPIA2_PRI_SetOperationMode;
+    _SEPIA2_PRI_DecodeTriggerSource       : T_SEPIA2_PRI_DecodeTriggerSource;
+    _SEPIA2_PRI_GetTriggerSource          : T_SEPIA2_PRI_GetTriggerSource;
+    _SEPIA2_PRI_SetTriggerSource          : T_SEPIA2_PRI_SetTriggerSource;
+    _SEPIA2_PRI_GetTriggerLevelLimits     : T_SEPIA2_PRI_GetTriggerLevelLimits;
+    _SEPIA2_PRI_GetTriggerLevel           : T_SEPIA2_PRI_GetTriggerLevel;
+    _SEPIA2_PRI_SetTriggerLevel           : T_SEPIA2_PRI_SetTriggerLevel;
+    _SEPIA2_PRI_GetFrequencyLimits        : T_SEPIA2_PRI_GetFrequencyLimits;
+    _SEPIA2_PRI_GetFrequency              : T_SEPIA2_PRI_GetFrequency;
+    _SEPIA2_PRI_SetFrequency              : T_SEPIA2_PRI_SetFrequency;
+    _SEPIA2_PRI_GetGatingLimits           : T_SEPIA2_PRI_GetGatingLimits;
+    _SEPIA2_PRI_GetGatingData             : T_SEPIA2_PRI_GetGatingData;
+    _SEPIA2_PRI_SetGatingData             : T_SEPIA2_PRI_SetGatingData;
+    _SEPIA2_PRI_GetGatingEnabled          : T_SEPIA2_PRI_GetGatingEnabled;
+    _SEPIA2_PRI_SetGatingEnabled          : T_SEPIA2_PRI_SetGatingEnabled;
+    _SEPIA2_PRI_GetGateHighImpedance      : T_SEPIA2_PRI_GetGateHighImpedance;
+    _SEPIA2_PRI_SetGateHighImpedance      : T_SEPIA2_PRI_SetGateHighImpedance;
+    _SEPIA2_PRI_DecodeWavelength          : T_SEPIA2_PRI_DecodeWavelength;
+    _SEPIA2_PRI_GetWavelengthIdx          : T_SEPIA2_PRI_GetWavelengthIdx;
+    _SEPIA2_PRI_SetWavelengthIdx          : T_SEPIA2_PRI_SetWavelengthIdx;
+    _SEPIA2_PRI_GetIntensity              : T_SEPIA2_PRI_GetIntensity;
+    _SEPIA2_PRI_SetIntensity              : T_SEPIA2_PRI_SetIntensity;
+
+  procedure DebugOut (const iDir : Integer; const strIn : string; iRetVal : integer = 0); overload;
   {$ifdef __CALL_DEBUGOUT__}
     var
       strDir : string;
@@ -989,7 +1199,7 @@ implementation
           1 : strDir := ' --> ';
           0 : strDir := ' <-- ';
           else
-              strDir := '   - ';
+              strDir := ' --- ';
         end;
         OutputDebugString (PWideChar (Format ('PQLaserDrv:%s%s%s', [strDir, strIn, ifthen (iRetVal <> 0, ' => ' + IntToStr (iRetVal), '')])));
       end;
@@ -997,7 +1207,7 @@ implementation
   end;  // DebugOut (const iDir : Integer; const strIn : string; iRetVal : integer = 0);
 
 
-  procedure DebugOut (const iDir : Integer; const strIn : string; cAdditionalStr : string);
+  procedure DebugOut (const iDir : Integer; const strIn : string; cAdditionalStr : string); overload;
   {$ifdef __CALL_DEBUGOUT__}
     var
       strDir : string;
@@ -1010,7 +1220,7 @@ implementation
           1 : strDir := ' --> ';
           0 : strDir := ' <-- ';
           else
-              strDir := '   - ';
+              strDir := ' --- ';
         end;
         OutputDebugString (PWideChar (Format ('PQLaserDrv:%s%s%s', [strDir, strIn, ifthen (length(cAdditionalStr) > 0, ' ' + cAdditionalStr, '')])));
       end;
@@ -1021,9 +1231,9 @@ implementation
   function SEPIA2_LIB_GetVersion (var cLibVersion: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_LIB_GetVersion';
   begin
-    strFkt  := 'SEPIA2_LIB_GetVersion';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_LIB_GetVersion (pcTmpVal1);
@@ -1033,13 +1243,38 @@ implementation
   end;  // SEPIA2_LIB_GetVersion
 
 
+  function SUBST_LIB_GetLibUSBVersion (var cLibUSBVersion: string) : integer; stdcall;
+  const
+    strFkt  = 'SUBST_LIB_GetLibUSBVersion';
+  begin
+    DebugOut (1, strFkt);
+    cLibUSBVersion := '0x0';
+    SUBST_LIB_GetLibUSBVersion := SEPIA2_ERR_NO_ERROR;
+    DebugOut (0, strFkt, SEPIA2_ERR_NO_ERROR);
+  end;  // SUBST_LIB_GetLibUSBVersion
+
+  function SEPIA2_LIB_GetLibUSBVersion (var cLibUSBVersion: string) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_LIB_GetLibUSBVersion';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_LIB_GetLibUSBVersion (pcTmpVal1);
+    cLibUSBVersion := string(pcTmpVal1);
+    SEPIA2_LIB_GetLibUSBVersion := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end;  // SEPIA2_LIB_GetLibUSBVersion
+
+
   function SEPIA2_LIB_IsRunningOnWine (var bIsRunningOnWine: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteIsRunningOnWine : byte;
+  const
+    strFkt  = 'SEPIA2_LIB_IsRunningOnWine';
   begin
-    strFkt  := 'SEPIA2_LIB_IsRunningOnWine';
     DebugOut (1, strFkt);
     iRetVal           := _SEPIA2_LIB_IsRunningOnWine (byteIsRunningOnWine);
     bIsRunningOnWine  := (byteIsRunningOnWine <> 0);
@@ -1051,9 +1286,9 @@ implementation
   function SEPIA2_LIB_DecodeError (iErrCode: integer; var cErrorString: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_LIB_DecodeError';
   begin
-    strFkt  := 'SEPIA2_LIB_DecodeError';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_LIB_DecodeError (iErrCode, pcTmpVal1);
@@ -1066,23 +1301,23 @@ implementation
   function SEPIA2_USB_OpenDevice (iDevIdx: integer; var cProductModel: string; var cSerialNumber: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     strPM   : AnsiString;
     strSN   : AnsiString;
+  const
+    strFkt  = 'SEPIA2_USB_OpenDevice';
   begin
-    strFkt  := 'SEPIA2_USB_OpenDevice';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     if (Length (cProductModel) > 0)
     then begin
       strPM := AnsiString (trim (cProductModel));
-      StrCopy (pcTmpVal1, PAnsiChar(strPM));
+      System.AnsiStrings.StrCopy (pcTmpVal1, PAnsiChar(strPM));
     end;
     FillChar(pcTmpVal2^, TEMPVAR_LENGTH, #0);
     if (Length (cSerialNumber) > 0)
     then begin
       strSN := AnsiString (trim (cSerialNumber));
-      StrCopy (pcTmpVal2, PAnsiChar(strSN));
+      System.AnsiStrings.StrCopy (pcTmpVal2, PAnsiChar(strSN));
     end;
     iRetVal := _SEPIA2_USB_OpenDevice (iDevIdx, pcTmpVal1, pcTmpVal2);
     cProductModel := string (pcTmpVal1);
@@ -1095,9 +1330,9 @@ implementation
   function SEPIA2_USB_CloseDevice (iDevIdx: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_USB_CloseDevice';
   begin
-    strFkt  := 'SEPIA2_USB_CloseDevice';
     DebugOut (1, strFkt);
     iRetVal :=  _SEPIA2_USB_CloseDevice (iDevIdx);
     SEPIA2_USB_CloseDevice :=  iRetVal;
@@ -1108,9 +1343,9 @@ implementation
   function SEPIA2_USB_GetStrDescriptor (iDevIdx: integer; var cDescriptor: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_USB_GetStrDescriptor';
   begin
-    strFkt  := 'SEPIA2_USB_GetStrDescriptor';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_USB_GetStrDescriptor (iDevIdx, pcTmpVal1);
@@ -1119,27 +1354,110 @@ implementation
     DebugOut (0, strFkt, iRetVal);
   end;  // SEPIA2_USB_GetStrDescriptor
 
+  function SUBST_USB_GetStrDescrByIdx (iDevIdx: integer; iDescrIdx: integer; pcDescriptor: pAnsiChar) : integer; stdcall;
+  var
+    iRetVal : integer;
+    cTempStr: string;
+    caTempStr: AnsiString;
+  const
+    strFkt  = 'SUBST_USB_GetStrDescrByIdx';
+  begin
+    DebugOut (1, strFkt);
+    //
+    // iRetVal := SEPIA2_USB_GetStrDescriptor (iDevIdx, cTempStr);
+    // returns    cTempStr := '<vendor>, <model>, Build <build>'
+    //  e.g.                  'PicoQuant, Sepia II, Build 0420';
+    // or (newly) cTempStr := '<vendor>, <model>, Build <build>, <serial>'
+    //  e.g.                  'PicoQuant, Sepia II, Build 0420, 1234567';
+    //
+    iRetVal := SEPIA2_USB_GetStrDescriptor (iDevIdx, cTempStr);
+    if (iRetVal = SEPIA2_ERR_NO_ERROR)
+    then begin
+      case iDescrIdx of
+        SEPIA2_USB_STRDSCR_IDX_VENDOR: begin
+          // alles ab erstem Komma löschen:
+          Delete (cTempStr, Pos(',', cTempStr), 999);
+        end;
+        SEPIA2_USB_STRDSCR_IDX_MODEL: begin
+          // alles bis incl. erstem Komma löschen:
+          Delete (cTempStr, 1, Pos(',', cTempStr));
+          // alles ab erstem (i.e. zweitem) Komma löschen:
+          Delete (cTempStr, Pos(',', cTempStr), 999);
+        end;
+        SEPIA2_USB_STRDSCR_IDX_BUILD: begin
+          // alles bis bis 'Build' löschen:
+          Delete (cTempStr, 1, Pos('Build', cTempStr) - 1);
+          // alles ab erstem (i.e. drittem) Komma löschen:
+          Delete (cTempStr, Pos(',', cTempStr), 999);
+        end;
+        SEPIA2_USB_STRDSCR_IDX_SERIAL: begin
+          // alles bis bis 'Build' löschen:
+          Delete (cTempStr, 1, Pos('Build', cTempStr) - 1);
+          if Pos(',', cTempStr) = 0
+          then begin
+            // old USB descriptor style (i.e.: <serial> is missing)
+            // but we could try to get it, anyway
+            // (at least as long as the map was already fetched :-(  ):
+            //
+            // iRetVal := SEPIA2_COM_GetSerialNumber (iDevIdx, -1, true, cTempStr);
+            // returns    cTempStr := '<serial>'
+            //
+            iRetVal := SEPIA2_COM_GetSerialNumber (iDevIdx, -1, true, cTempStr);
+          end
+          else begin
+            // alles bis incl. erstem (i.e. drittem) Komma löschen:
+            Delete (cTempStr, 1, Pos(',', cTempStr));
+          end;
+        end;
+      else
+        iRetVal  := SEPIA2_ERR_USB_INVALID_ARGUMENT;
+        cTempStr := ' ';
+      end;
+
+    end;
+    cTempStr  := trim (cTempStr);
+    caTempStr := AnsiString(cTempStr);
+    System.AnsiStrings.StrPCopy(pcDescriptor, caTempStr);
+    SUBST_USB_GetStrDescrByIdx := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end;  // SUBST_USB_GetStrDescrByIdx
+
+
+  function SEPIA2_USB_GetStrDescrByIdx (iDevIdx: integer; iDescrIdx: integer; var cDescriptor: string) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_USB_GetStrDescrByIdx';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_USB_GetStrDescrByIdx (iDevIdx, iDescrIdx, pcTmpVal1);
+    cDescriptor := string(pcTmpVal1);
+    SEPIA2_USB_GetStrDescrByIdx := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end;  // SEPIA2_USB_GetStrDescrByIdx
+
 
   function SEPIA2_USB_OpenGetSerNumAndClose (iDevIdx: integer; var cProductModel: string; var cSerialNumber: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     strPM   : AnsiString;
     strSN   : AnsiString;
+  const
+    strFkt  = 'SEPIA2_USB_OpenGetSerNumAndClose';
   begin
-    strFkt  := 'SEPIA2_USB_OpenGetSerNumAndClose';
     DebugOut (1, strFkt);
     FillChar (pcTmpVal1^, TEMPVAR_LENGTH, #0);
     if (Length (cProductModel) > 0)
     then begin
       strPM := AnsiString (cProductModel);
-      StrCopy (pcTmpVal1, PAnsiChar(strPM));
+      System.AnsiStrings.StrCopy (pcTmpVal1, PAnsiChar(strPM));
     end;
     FillChar(pcTmpVal2^, TEMPVAR_LENGTH, #0);
     if (Length (cSerialNumber) > 0)
     then begin
       strSN := AnsiString (cSerialNumber);
-      StrCopy (pcTmpVal2, PAnsiChar(strSN));
+      System.AnsiStrings.StrCopy (pcTmpVal2, PAnsiChar(strSN));
     end;
     iRetVal := _SEPIA2_USB_OpenGetSerNumAndClose (iDevIdx, pcTmpVal1, pcTmpVal2);
     cProductModel := string(pcTmpVal1);
@@ -1148,15 +1466,46 @@ implementation
     DebugOut (-1, strFkt + ' returns cProductModel = ', '"' + cProductModel + '"');
     DebugOut (-1, strFkt + ' returns cSerialNumber = ', '"' + cSerialNumber + '"');
     DebugOut (0, strFkt, iRetVal);
-  end;  // SEPIA2_USB_OpenDevice
+  end;  // SEPIA2_USB_OpenGetSerNumAndClose
+
+
+    function SUBST_USB_IsOpenDevice (iDevIdx: integer; var byteIsOpenDevice: byte) : integer; stdcall;
+  var
+    iRetVal : integer;
+    cDescriptor : string;
+  const
+    strFkt  = 'SUBST_USB_IsOpenDevice';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_USB_GetStrDescriptor (iDevIdx, pcTmpVal1);
+    cDescriptor := string(pcTmpVal1);
+    byteIsOpenDevice := Byte(ifthen((iRetVal = SEPIA2_ERR_NO_ERROR) and not cDescriptor.IsEmpty, 1, 0));
+    SUBST_USB_IsOpenDevice := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end;  // SUBST_USB_IsOpenDevice
+
+  function SEPIA2_USB_IsOpenDevice (iDevIdx: integer; var bIsOpenDevice : boolean) : integer;
+  var
+    iRetVal : integer;
+    byteIsOpenDevice : byte;
+  const
+    strFkt  = 'SEPIA2_USB_IsOpenDevice';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal        := _SEPIA2_USB_IsOpenDevice (iDevIdx, byteIsOpenDevice);
+    bIsOpenDevice  := (byteIsOpenDevice <> 0);
+    SEPIA2_USB_IsOpenDevice := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end;  // SEPIA2_USB_IsOpenDevice
 
 
   function SEPIA2_FWR_GetVersion (iDevIdx: integer; var cFWVersion: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_FWR_GetVersion';
   begin
-    strFkt  := 'SEPIA2_FWR_GetVersion';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_FWR_GetVersion (iDevIdx, pcTmpVal1);
@@ -1169,9 +1518,9 @@ implementation
   function SEPIA2_FWR_GetLastError (iDevIdx: integer; var iErrCode, iPhase, iLocation, iSlot: integer; var cCondition: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_FWR_GetLastError';
   begin
-    strFkt  := 'SEPIA2_FWR_GetLastError';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_FWR_GetLastError (iDevIdx, iErrCode, iPhase, iLocation, iSlot, pcTmpVal1);
@@ -1184,9 +1533,9 @@ implementation
   function SEPIA2_FWR_DecodeErrPhaseName (iErrPhase: integer; var cErrorPhase: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_FWR_DecodeErrPhaseName';
   begin
-    strFkt  := 'SEPIA2_FWR_DecodeErrPhaseName';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_FWR_DecodeErrPhaseName (iErrPhase, pcTmpVal1);
@@ -1199,10 +1548,10 @@ implementation
   function SEPIA2_FWR_GetWorkingMode (iDevIdx: integer; var fwmMode: T_SEPIA2_FWR_WORKINGMODE) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMode   : integer;
+  const
+    strFkt  = 'SEPIA2_FWR_GetWorkingMode';
   begin
-    strFkt  := 'SEPIA2_FWR_GetWorkingMode';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_FWR_GetWorkingMode (iDevIdx, iMode);
     try
@@ -1218,10 +1567,10 @@ implementation
   function SEPIA2_FWR_SetWorkingMode (iDevIdx: integer; fwmMode: T_SEPIA2_FWR_WORKINGMODE) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMode   : integer;
+  const
+    strFkt  = 'SEPIA2_FWR_SetWorkingMode';
   begin
-    strFkt  := 'SEPIA2_FWR_SetWorkingMode';
     DebugOut (1, strFkt);
     iMode   := ord (fwmMode);
     iRetVal := _SEPIA2_FWR_SetWorkingMode (iDevIdx, iMode);
@@ -1233,9 +1582,9 @@ implementation
   function SEPIA2_FWR_RollBackToPermanentValues (iDevIdx: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_FWR_RollBackToPermanentValues';
   begin
-    strFkt  := 'SEPIA2_FWR_RollBackToPermanentValues';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_FWR_RollBackToPermanentValues (iDevIdx);
     SEPIA2_FWR_RollBackToPermanentValues := iRetVal;
@@ -1246,9 +1595,9 @@ implementation
   function SEPIA2_FWR_StoreAsPermanentValues (iDevIdx: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_FWR_StoreAsPermanentValues';
   begin
-    strFkt  := 'SEPIA2_FWR_StoreAsPermanentValues';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_FWR_StoreAsPermanentValues (iDevIdx);
     SEPIA2_FWR_StoreAsPermanentValues := iRetVal;
@@ -1259,10 +1608,10 @@ implementation
   function SEPIA2_FWR_GetModuleMap (iDevIdx: integer; bPerformRestart: boolean; var iModuleCount: integer) : integer;
   var
     iRetVal         : integer;
-    strFkt          : string;
     iPerformRestart : integer;
+  const
+    strFkt  = 'SEPIA2_FWR_GetModuleMap';
   begin
-    strFkt  := 'SEPIA2_FWR_GetModuleMap';
     DebugOut (1, strFkt);
     iPerformRestart := ifthen (bPerformRestart, 1, 0);
     iRetVal := _SEPIA2_FWR_GetModuleMap (iDevIdx, iPerformRestart, iModuleCount);
@@ -1274,12 +1623,12 @@ implementation
   function SEPIA2_FWR_GetModuleInfoByMapIdx (iDevIdx, iMapIdx: integer; var iSlotId: integer; var bIsPrimary, bIsBackPlane, bHasUptimeCounter: boolean) : integer;
   var
     iRetVal              : integer;
-    strFkt               : string;
     byteIsPrimary        : byte;
     byteIsBackPlane      : byte;
     byteHasUptimeCounter : byte;
+  const
+    strFkt  = 'SEPIA2_FWR_GetModuleInfoByMapIdx';
   begin
-    strFkt  := 'SEPIA2_FWR_GetModuleInfoByMapIdx';
     DebugOut (1, strFkt);
     iRetVal           := _SEPIA2_FWR_GetModuleInfoByMapIdx (iDevIdx, iMapIdx, iSlotId, byteIsPrimary, byteIsBackPlane, byteHasUptimeCounter);
     bIsPrimary        := (byteIsPrimary <> 0);
@@ -1293,9 +1642,9 @@ implementation
   function SEPIA2_FWR_GetUptimeInfoByMapIdx (iDevIdx, iMapIdx: integer; var dwMainPowerUp, dwActivePowerUp, dwScaledPowerUp: cardinal) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_FWR_GetUptimeInfoByMapIdx';
   begin
-    strFkt  := 'SEPIA2_FWR_GetUptimeInfoByMapIdx';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_FWR_GetUptimeInfoByMapIdx (iDevIdx, iMapIdx, dwMainPowerUp, dwActivePowerUp, dwScaledPowerUp);
     SEPIA2_FWR_GetUptimeInfoByMapIdx := iRetVal;
@@ -1306,11 +1655,11 @@ implementation
   function SEPIA2_FWR_CreateSupportRequestText (iDevIdx: integer; cPreamble, cCallingSW: string; iOptions: integer; var cBuffer: string) : integer;
   var
     iRetVal       : integer;
-    strFkt        : string;
     strPreamble   : AnsiString;
     strCallingSW  : AnsiString;
+  const
+    strFkt  = 'SEPIA2_FWR_CreateSupportRequestText';
   begin
-    strFkt  := 'SEPIA2_FWR_CreateSupportRequestText';
     DebugOut (1, strFkt);
     FillChar (pcTmpVal1^,     TEMPVAR_LENGTH, #0);
     FillChar (pcTmpVal2^,     TEMPVAR_LENGTH, #0);
@@ -1320,13 +1669,13 @@ implementation
     if (Length (cPreamble) > 0)
     then begin
       strPreamble := AnsiString (cPreamble);
-      StrCopy (pcTmpVal1, PAnsiChar(strPreamble));
+      System.AnsiStrings.StrCopy (pcTmpVal1, PAnsiChar(strPreamble));
     end;
     //
     if (Length (cCallingSW) > 0)
     then begin
       strCallingSW := AnsiString (cCallingSW);
-      StrCopy (pcTmpVal2, PAnsiChar(strCallingSW));
+      System.AnsiStrings.StrCopy (pcTmpVal2, PAnsiChar(strCallingSW));
     end;
     //
     iRetVal := _SEPIA2_FWR_CreateSupportRequestText (iDevIdx, pcTmpVal1, pcTmpVal2, iOptions, TEMPLONGVAR_LENGTH, pcTmpLongVal2);
@@ -1339,9 +1688,9 @@ implementation
   function SEPIA2_FWR_FreeModuleMap (iDevIdx: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_FWR_FreeModuleMap';
   begin
-    strFkt  := 'SEPIA2_FWR_FreeModuleMap';
     DebugOut (1, strFkt);
     iRetVal :=  _SEPIA2_FWR_FreeModuleMap (iDevIdx);
     SEPIA2_FWR_FreeModuleMap := iRetVal;
@@ -1352,9 +1701,9 @@ implementation
   function SEPIA2_COM_DecodeModuleType (iModuleType: integer; var cModuleType: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_COM_DecodeModuleType';
   begin
-    strFkt  := 'SEPIA2_COM_DecodeModuleType';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_COM_DecodeModuleType (iModuleType, pcTmpVal1);
@@ -1367,9 +1716,9 @@ implementation
   function SEPIA2_COM_DecodeModuleTypeAbbr (iModuleType: integer; var cModuleTypeAbbr: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_COM_DecodeModuleTypeAbbr';
   begin
-    strFkt  := 'SEPIA2_COM_DecodeModuleTypeAbbr';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_COM_DecodeModuleTypeAbbr (iModuleType, pcTmpVal1);
@@ -1382,10 +1731,10 @@ implementation
   function SEPIA2_COM_HasSecondaryModule (iDevIdx, iSlotId: integer; var bHasSecondary: boolean) : integer;
   var
     iRetVal       : integer;
-    strFkt        : string;
     iHasSecondary : integer;
+  const
+    strFkt  = 'SEPIA2_COM_HasSecondaryModule';
   begin
-    strFkt  := 'SEPIA2_COM_HasSecondaryModule';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_HasSecondaryModule (iDevIdx, iSlotId, iHasSecondary);
     bHasSecondary := (iHasSecondary <> 0);
@@ -1399,10 +1748,10 @@ implementation
   // iSlotId = -1        means:    "module type of the backplane" (i.e. the Sepia2 frame as a whole)
   var
     iRetVal     : integer;
-    strFkt      : string;
     iGetPrimary : integer;
+  const
+    strFkt  = 'SEPIA2_COM_GetModuleType';
   begin
-    strFkt  := 'SEPIA2_COM_GetModuleType';
     DebugOut (1, strFkt);
     iGetPrimary := ifthen (bGetPrimary, 1, 0);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, iGetPrimary, iModuleType);
@@ -1414,10 +1763,10 @@ implementation
   function SEPIA2_COM_GetSerialNumber (iDevIdx, iSlotId: integer; bGetPrimary: boolean; var cSerialNumber: string) : integer;
   var
     iRetVal    : integer;
-    strFkt     : string;
     iGetPrimary: integer;
+  const
+    strFkt  = 'SEPIA2_COM_GetSerialNumber';
   begin
-    strFkt  := 'SEPIA2_COM_GetSerialNumber';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iGetPrimary := ifthen (bGetPrimary, 1, 0);
@@ -1431,15 +1780,15 @@ implementation
   function SEPIA2_COM_GetSupplementaryInfos   (iDevIdx, iSlotId: integer; bGetPrimary: boolean; var cLabel: string; var dtRelease: TDateTime; var cRevision: string; var cMemo : string) : integer;
   var
     iRetVal     : integer;
-    strFkt      : string;
     strDate     : string;
     iGetPrimary : integer;
     p1          : pAnsiChar;
     p2          : pAnsiChar;
     p3          : pAnsiChar;
     p4          : pAnsiChar;
+  const
+    strFkt  = 'SEPIA2_COM_GetSupplementaryInfos';
   begin
-    strFkt  := 'SEPIA2_COM_GetSupplementaryInfos';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iGetPrimary := ifthen (bGetPrimary, 1, 0);
@@ -1451,9 +1800,9 @@ implementation
     cLabel      := string (p1);
     strDate     := string (p2);
     try
-      dtRelease := StrToDate (strDate,    fsDecode);
+      dtRelease := StrToDate (strDate,    FormatSettings_enUS);
     except
-      dtRelease := StrToDate ('69/12/31', fsDecode);
+      dtRelease := StrToDate ('69/12/31', FormatSettings_enUS);
     end;
     cRevision   := string (p3);
     cMemo       := string (p4);
@@ -1465,11 +1814,11 @@ implementation
   function SEPIA2_COM_GetPresetInfo (iDevIdx, iSlotId: integer; bGetPrimary: boolean; iPresetNr: integer; var bPresetIsSet: boolean; var cPresetMemo: string) : integer;
   var
     iRetVal         : integer;
-    strFkt          : string;
     iGetPrimary     : integer;
     bytePresetIsSet : byte;
+  const
+    strFkt  = 'SEPIA2_COM_GetPresetInfo';
   begin
-    strFkt  := 'SEPIA2_COM_GetPresetInfo';
     DebugOut (1, strFkt);
     iGetPrimary := ifthen (bGetPrimary, 1, 0);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
@@ -1484,10 +1833,10 @@ implementation
   function SEPIA2_COM_RecallPreset (iDevIdx, iSlotId: integer; bGetPrimary: boolean; iPresetNr: integer) : integer;
   var
     iRetVal     : integer;
-    strFkt      : string;
     iGetPrimary : integer;
+  const
+    strFkt  = 'SEPIA2_COM_RecallPreset';
   begin
-    strFkt  := 'SEPIA2_COM_RecallPreset';
     DebugOut (1, strFkt);
     iGetPrimary := ifthen (bGetPrimary, 1, 0);
     iRetVal := _SEPIA2_COM_RecallPreset (iDevIdx, iSlotId, iGetPrimary, iPresetNr);
@@ -1499,14 +1848,14 @@ implementation
   function SEPIA2_COM_SaveAsPreset (iDevIdx, iSlotId: integer; bSetPrimary: boolean; iPresetNr: integer; const cPresetMemo: string) : integer;
   var
     iRetVal         : integer;
-    strFkt          : string;
     iSetPrimary     : integer;
+  const
+    strFkt  = 'SEPIA2_COM_SaveAsPreset';
   begin
-    strFkt  := 'SEPIA2_COM_SaveAsPreset';
     DebugOut (1, strFkt);
     iSetPrimary := ifthen (bSetPrimary, 1, 0);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
-    StrCopy (pcTmpVal1, PAnsiChar (@AnsiString(cPresetMemo + #0)[1]));
+    System.AnsiStrings.StrCopy (pcTmpVal1, PAnsiChar (@AnsiString(cPresetMemo + #0)[1]));
     iRetVal := _SEPIA2_COM_SaveAsPreset (iDevIdx, iSlotId, iSetPrimary, iPresetNr, pcTmpVal1);
     SEPIA2_COM_SaveAsPreset := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1516,16 +1865,16 @@ implementation
   function SEPIA2_COM_IsWritableModule (iDevIdx, iSlotId: integer; bGetPrimary: boolean; var bIsWritable: boolean) : integer;
   var
     iRetVal        : integer;
-    strFkt         : string;
     iGetPrimary    : integer;
     byteIsWritable : byte;
+  const
+    strFkt  = 'SEPIA2_COM_IsWritableModule';
   begin
-    strFkt  := 'SEPIA2_COM_IsWritableModule';
     DebugOut (1, strFkt);
     iGetPrimary := ifthen (bGetPrimary, 1, 0);
     iRetVal := _SEPIA2_COM_IsWritableModule (iDevIdx, iSlotId, iGetPrimary, byteIsWritable);
-    SEPIA2_COM_IsWritableModule := iRetVal;
     bIsWritable := (byteIsWritable <> 0);
+    SEPIA2_COM_IsWritableModule := iRetVal;
     DebugOut (0, strFkt, iRetVal);
   end; // SEPIA2_COM_IsWritableModule
 
@@ -1533,11 +1882,11 @@ implementation
   function SEPIA2_COM_UpdateModuleData (iDevIdx, iSlotId: integer; bSetPrimary: boolean; cFileName: string) : integer;
   var
     iRetVal     : integer;
-    strFkt      : string;
     strTemp     : AnsiString;
     iSetPrimary : integer;
+  const
+    strFkt  = 'SEPIA2_COM_UpdateModuleData';
   begin
-    strFkt  := 'SEPIA2_COM_UpdateModuleData';
     DebugOut (1, strFkt);
     iSetPrimary := ifthen (bSetPrimary, 1, 0);
     strTemp := AnsiString (cFileName);
@@ -1550,42 +1899,50 @@ implementation
   function SEPIA2_SCM_GetPowerAndLaserLEDS (iDevIdx, iSlotId: integer; var bPowerLED, bLaserActiveLED: boolean) : integer;
   var
     iRetVal            : integer;
-    strFkt             : string;
     bytePowerLED       : byte;
     byteLaserActiveLED : byte;
+  const
+    strFkt  = 'SEPIA2_SCM_GetPowerAndLaserLEDS';
   begin
-    strFkt  := 'SEPIA2_SCM_GetPowerAndLaserLEDS';
+  {$ifndef __POLLING_AWARE_AVOIDING_DEBUGOUT__}
     DebugOut (1, strFkt);
+  {$endif}
     iRetVal := _SEPIA2_SCM_GetPowerAndLaserLEDS (iDevIdx, iSlotId, bytePowerLED, byteLaserActiveLED);
     bPowerLED       := (bytePowerLED <> 0);
     bLaserActiveLED := (byteLaserActiveLED <> 0);
     SEPIA2_SCM_GetPowerAndLaserLEDS := iRetVal;
+  {$ifndef __POLLING_AWARE_AVOIDING_DEBUGOUT__}
     DebugOut (0, strFkt, iRetVal);
+  {$endif}
   end;  // _SEPIA2_SCM_GetPowerAndLaserLEDS
 
 
   function SEPIA2_SCM_GetLaserLocked (iDevIdx, iSlotId: integer; var bLocked: boolean) : integer;
   var
     iRetVal    : integer;
-    strFkt     : string;
     byteLocked : byte;
+  const
+    strFkt  = 'SEPIA2_SCM_GetLaserLocked';
   begin
-    strFkt  := 'SEPIA2_SCM_GetLaserLocked';
+  {$ifndef __POLLING_AWARE_AVOIDING_DEBUGOUT__}
     DebugOut (1, strFkt);
+  {$endif}
     iRetVal := _SEPIA2_SCM_GetLaserLocked (iDevIdx, iSlotId, byteLocked);
     bLocked := (byteLocked <> 0);
     SEPIA2_SCM_GetLaserLocked := iRetVal;
+  {$ifndef __POLLING_AWARE_AVOIDING_DEBUGOUT__}
     DebugOut (0, strFkt, iRetVal);
+  {$endif}
   end;  // SEPIA2_SCM_GetLaserLocked
 
 
   function SEPIA2_SCM_GetLaserSoftLock (iDevIdx, iSlotId: integer; var bSoftLocked: boolean) : integer;
   var
     iRetVal        : integer;
-    strFkt         : string;
     byteSoftLocked : byte;
+  const
+    strFkt  = 'SEPIA2_SCM_GetLaserSoftLock';
   begin
-    strFkt  := 'SEPIA2_SCM_GetLaserSoftLock';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SCM_GetLaserSoftLock (iDevIdx, iSlotId, byteSoftLocked);
     bSoftLocked := (byteSoftLocked <> 0);
@@ -1597,10 +1954,10 @@ implementation
   function SEPIA2_SCM_SetLaserSoftLock (iDevIdx, iSlotId: integer; bSoftLocked: boolean) : integer;
   var
     iRetVal        : integer;
-    strFkt         : string;
     byteSoftLocked : byte;
+  const
+    strFkt  = 'SEPIA2_SCM_SetLaserSoftLock';
   begin
-    strFkt  := 'SEPIA2_SCM_SetLaserSoftLock';
     DebugOut (1, strFkt);
     byteSoftLocked := ifthen (bSoftLocked, 1, 0);
     iRetVal := _SEPIA2_SCM_SetLaserSoftLock (iDevIdx, iSlotId, byteSoftLocked);
@@ -1612,9 +1969,9 @@ implementation
   function SEPIA2_SLM_DecodeFreqTrigMode (iFreq: integer; var cFreqTrigMode: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SLM_DecodeFreqTrigMode';
   begin
-    strFkt  := 'SEPIA2_SLM_DecodeFreqTrigMode';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SLM_DecodeFreqTrigMode (iFreq, pcTmpVal1);
@@ -1627,9 +1984,9 @@ implementation
   function SEPIA2_SLM_DecodeHeadType (iHeadType: integer; var cHeadType: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SLM_DecodeHeadType';
   begin
-    strFkt  := 'SEPIA2_SLM_DecodeHeadType';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SLM_DecodeHeadType (iHeadType, pcTmpVal1);
@@ -1644,10 +2001,10 @@ implementation
   // use instead : SEPIA2_SLM_GetIntensityFineStep, SEPIA2_SLM_GetPulseParameters
   var
     iRetVal       : integer;
-    strFkt        : string;
     bytePulseMode : byte;
+  const
+    strFkt  = 'SEPIA2_SLM_GetParameters';
   begin
-    strFkt  := 'SEPIA2_SLM_GetParameters';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SLM_GetParameters (iDevIdx, iSlotId, iFreq, bytePulseMode, iHead, byteIntensity);
     bPulseMode := (bytePulseMode <> 0);
@@ -1661,10 +2018,10 @@ implementation
   // use instead : SEPIA2_SLM_SetIntensityFineStep, SEPIA2_SLM_SetPulseParameters
   var
     iRetVal       : integer;
-    strFkt        : string;
     bytePulseMode : byte;
+  const
+    strFkt  = 'SEPIA2_SLM_SetParameters';
   begin
-    strFkt  := 'SEPIA2_SLM_SetParameters';
     DebugOut (1, strFkt);
     bytePulseMode := ifthen (bPulseMode, 1, 0);
     iRetVal := _SEPIA2_SLM_SetParameters (iDevIdx, iSlotId, iFreq, bytePulseMode, byteIntensity);
@@ -1676,9 +2033,9 @@ implementation
   function SEPIA2_SLM_GetIntensityFineStep (iDevIdx, iSlotId: integer; var wIntensity: word) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SLM_GetIntensityFineStep';
   begin
-    strFkt  := 'SEPIA2_SLM_GetIntensityFineStep';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SLM_GetIntensityFineStep (iDevIdx, iSlotId, wIntensity);
     SEPIA2_SLM_GetIntensityFineStep := iRetVal;
@@ -1689,9 +2046,9 @@ implementation
   function SEPIA2_SLM_SetIntensityFineStep (iDevIdx, iSlotId: integer; wIntensity: word) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SLM_SetIntensityFineStep';
   begin
-    strFkt  := 'SEPIA2_SLM_SetIntensityFineStep';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SLM_SetIntensityFineStep (iDevIdx, iSlotId, wIntensity);
     SEPIA2_SLM_SetIntensityFineStep := iRetVal;
@@ -1702,10 +2059,10 @@ implementation
   function SEPIA2_SLM_GetPulseParameters (iDevIdx, iSlotId: integer; var iFreq: integer; var bPulseMode: boolean; var iHeadType: integer) : integer;
   var
     iRetVal       : integer;
-    strFkt        : string;
     bytePulseMode : byte;
+  const
+    strFkt  = 'SEPIA2_SLM_GetPulseParameters';
   begin
-    strFkt  := 'SEPIA2_SLM_GetPulseParameters';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SLM_GetPulseParameters (iDevIdx, iSlotId, iFreq, bytePulseMode, iHeadType);
     bPulseMode := (bytePulseMode <> 0);
@@ -1717,10 +2074,10 @@ implementation
   function SEPIA2_SLM_SetPulseParameters (iDevIdx, iSlotId: integer; iFreq: integer; bPulseMode: boolean) : integer;
   var
     iRetVal       : integer;
-    strFkt        : string;
     bytePulseMode : byte;
+  const
+    strFkt  = 'SEPIA2_SLM_SetPulseParameters';
   begin
-    strFkt  := 'SEPIA2_SLM_SetPulseParameters';
     DebugOut (1, strFkt);
     bytePulseMode := ifthen (bPulseMode, 1, 0);
     iRetVal := _SEPIA2_SLM_SetPulseParameters (iDevIdx, iSlotId, iFreq, bytePulseMode);
@@ -1732,9 +2089,9 @@ implementation
   function SEPIA2_SML_DecodeHeadType (iHeadType: integer; var cHeadType: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SML_DecodeHeadType';
   begin
-    strFkt  := 'SEPIA2_SML_DecodeHeadType';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SML_DecodeHeadType (iHeadType, pcTmpVal1);
@@ -1747,10 +2104,10 @@ implementation
   function SEPIA2_SML_GetParameters (iDevIdx, iSlotId: integer; var bPulseMode: boolean; var iHead: integer; var byteIntensity: byte) : integer;
   var
     iRetVal       : integer;
-    strFkt        : string;
     bytePulseMode : byte;
+  const
+    strFkt  = 'SEPIA2_SML_GetParameters';
   begin
-    strFkt  := 'SEPIA2_SML_GetParameters';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SML_GetParameters (iDevIdx, iSlotId, bytePulseMode, iHead, byteIntensity);
     bPulseMode := (bytePulseMode <> 0);
@@ -1762,10 +2119,10 @@ implementation
   function SEPIA2_SML_SetParameters (iDevIdx, iSlotId: integer; bPulseMode: boolean; byteIntensity: byte) : integer;
   var
     iRetVal       : integer;
-    strFkt        : string;
     bytePulseMode : byte;
+  const
+    strFkt  = 'SEPIA2_SML_SetParameters';
   begin
-    strFkt  := 'SEPIA2_SML_SetParameters';
     DebugOut (1, strFkt);
     bytePulseMode := ifthen (bPulseMode, 1, 0);
     iRetVal := _SEPIA2_SML_SetParameters (iDevIdx, iSlotId, bytePulseMode, byteIntensity);
@@ -1777,20 +2134,23 @@ implementation
   function SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx: integer; var cFreqTrigMode: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_DecodeFreqTrigMode';
   begin
-    strFkt  := 'SEPIA2_SOM_DecodeFreqTrigMode';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, pcTmpVal1);
-      else
-        iRetVal := _SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, pcTmpVal1);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, pcTmpVal1);
+        else
+          iRetVal := _SEPIA2_SOM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, pcTmpVal1);
+      end;
+      cFreqTrigMode := string(pcTmpVal1);
     end;
-    cFreqTrigMode := string(pcTmpVal1);
     SEPIA2_SOM_DecodeFreqTrigMode := iRetVal;
     DebugOut (0, strFkt, iRetVal);
   end;  // SEPIA2_SOM_DecodeFreqTrigMode
@@ -1799,19 +2159,22 @@ implementation
   function SEPIA2_SOM_GetFreqTrigMode (iDevIdx, iSlotId: integer; var iFreqTrigIdx: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_GetFreqTrigMode';
   begin
-    strFkt  := 'SEPIA2_SOM_GetFreqTrigMode';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD: begin
-        OutputDebugString (PChar ('Error: --- SOM function "' + strFkt + '" called for SOMD module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD: begin
+          OutputDebugString (PChar ('Error: --- SOM function "' + strFkt + '" called for SOMD module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOM_GetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx);
       end;
-      else
-        iRetVal := _SEPIA2_SOM_GetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx);
     end;
     SEPIA2_SOM_GetFreqTrigMode := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1821,19 +2184,22 @@ implementation
   function SEPIA2_SOM_SetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_SetFreqTrigMode';
   begin
-    strFkt  := 'SEPIA2_SOM_SetFreqTrigMode';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD: begin
-        OutputDebugString (PChar ('Error: --- SOM function "' + strFkt + '" called for SOMD module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD: begin
+          OutputDebugString (PChar ('Error: --- SOM function "' + strFkt + '" called for SOMD module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOM_SetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx);
       end;
-      else
-        iRetVal := _SEPIA2_SOM_SetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx);
     end;
     SEPIA2_SOM_SetFreqTrigMode := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1843,17 +2209,20 @@ implementation
   function SEPIA2_SOM_GetTriggerRange (iDevIdx, iSlotId: integer; var iMilliVoltLow, iMilliVoltHigh: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_GetTriggerRange';
   begin
-    strFkt  := 'SEPIA2_SOM_GetTriggerRange';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_GetTriggerRange (iDevIdx, iSlotId, iMilliVoltLow, iMilliVoltHigh);
-      else
-        iRetVal := _SEPIA2_SOM_GetTriggerRange (iDevIdx, iSlotId, iMilliVoltLow, iMilliVoltHigh);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_GetTriggerRange (iDevIdx, iSlotId, iMilliVoltLow, iMilliVoltHigh);
+        else
+          iRetVal := _SEPIA2_SOM_GetTriggerRange (iDevIdx, iSlotId, iMilliVoltLow, iMilliVoltHigh);
+      end;
     end;
     SEPIA2_SOM_GetTriggerRange := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1863,17 +2232,20 @@ implementation
   function SEPIA2_SOM_GetTriggerLevel (iDevIdx, iSlotId: integer; var iMilliVolt: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_GetTriggerLevel';
   begin
-    strFkt  := 'SEPIA2_SOM_GetTriggerLevel';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_GetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
-      else
-        iRetVal := _SEPIA2_SOM_GetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_GetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
+        else
+          iRetVal := _SEPIA2_SOM_GetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
+      end;
     end;
     SEPIA2_SOM_GetTriggerLevel := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1883,17 +2255,20 @@ implementation
   function SEPIA2_SOM_SetTriggerLevel (iDevIdx, iSlotId, iMilliVolt: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_SetTriggerLevel';
   begin
-    strFkt  := 'SEPIA2_SOM_SetTriggerLevel';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_SetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
-      else
-        iRetVal := _SEPIA2_SOM_SetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_SetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
+        else
+          iRetVal := _SEPIA2_SOM_SetTriggerLevel (iDevIdx, iSlotId, iMilliVolt);
+      end;
     end;
     SEPIA2_SOM_SetTriggerLevel := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1903,17 +2278,20 @@ implementation
   function SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSlotId: integer; var lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8: longint) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_GetBurstLengthArray';
   begin
-    strFkt  := 'SEPIA2_SOM_GetBurstLengthArray';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_GetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
-      else
-        iRetVal := _SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_GetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
+        else
+          iRetVal := _SEPIA2_SOM_GetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
+      end;
     end;
     SEPIA2_SOM_GetBurstLengthArray := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1923,17 +2301,20 @@ implementation
   function SEPIA2_SOM_SetBurstLengthArray (iDevIdx, iSlotId: integer; lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8: longint) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_SetBurstLengthArray';
   begin
-    strFkt  := 'SEPIA2_SOM_SetBurstLengthArray';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_SetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
-      else
-        iRetVal := _SEPIA2_SOM_SetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_SetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
+        else
+          iRetVal := _SEPIA2_SOM_SetBurstLengthArray (iDevIdx, iSlotId, lBurstLen1, lBurstLen2, lBurstLen3, lBurstLen4, lBurstLen5, lBurstLen6, lBurstLen7, lBurstLen8);
+      end;
     end;
     SEPIA2_SOM_SetBurstLengthArray := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1943,20 +2324,23 @@ implementation
   function SEPIA2_SOM_GetOutNSyncEnable (iDevIdx, iSlotId: integer; var byteOutEnable, byteSyncEnable: byte; var bSyncInverse: boolean) : integer;
   var
     iRetVal         : integer;
-    strFkt          : string;
     iMType          : integer;
     byteSyncInverse : byte;
+  const
+    strFkt  = 'SEPIA2_SOM_GetOutNSyncEnable';
   begin
-    strFkt  := 'SEPIA2_SOM_GetOutNSyncEnable';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_GetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
-      else
-        iRetVal := _SEPIA2_SOM_GetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_GetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
+        else
+          iRetVal := _SEPIA2_SOM_GetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
+      end;
+      bSyncInverse := (byteSyncInverse <> 0);
     end;
-    bSyncInverse := (byteSyncInverse <> 0);
     SEPIA2_SOM_GetOutNSyncEnable := iRetVal;
     DebugOut (0, strFkt, iRetVal);
   end;  // SEPIA2_SOM_GetOutNSyncEnable
@@ -1965,19 +2349,22 @@ implementation
   function SEPIA2_SOM_SetOutNSyncEnable (iDevIdx, iSlotId: integer; byteOutEnable, byteSyncEnable: byte; bSyncInverse: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
     byteSyncInverse : byte;
+  const
+    strFkt  = 'SEPIA2_SOM_SetOutNSyncEnable';
   begin
-    strFkt  := 'SEPIA2_SOM_SetOutNSyncEnable';
     DebugOut (1, strFkt);
     byteSyncInverse := ifthen (bSyncInverse, 1, 0);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_SetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
-      else
-        iRetVal := _SEPIA2_SOM_SetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_SetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
+        else
+          iRetVal := _SEPIA2_SOM_SetOutNSyncEnable (iDevIdx, iSlotId, byteOutEnable, byteSyncEnable, byteSyncInverse);
+      end;
     end;
     SEPIA2_SOM_SetOutNSyncEnable := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -1990,17 +2377,20 @@ implementation
     iRetVal     : integer;
     iMType      : integer;
     byteDivider : byte;
-    strFkt      : string;
+  const
+    strFkt  = 'SEPIA2_SOM_GetBurstValues';
   begin
-    strFkt  := 'SEPIA2_SOM_GetBurstValues';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal  := _SEPIA2_SOMD_GetBurstValues (iDevIdx, iSlotId, wDivider, bytePreSync, byteSyncMask);
-      else  begin
-        iRetVal  := _SEPIA2_SOM_GetBurstValues (iDevIdx, iSlotId, byteDivider, bytePreSync, byteSyncMask);
-        wDivider := $0000 or byteDivider;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal  := _SEPIA2_SOMD_GetBurstValues (iDevIdx, iSlotId, wDivider, bytePreSync, byteSyncMask);
+        else  begin
+          iRetVal  := _SEPIA2_SOM_GetBurstValues (iDevIdx, iSlotId, byteDivider, bytePreSync, byteSyncMask);
+          wDivider := $0000 or byteDivider;
+        end;
       end;
     end;
     SEPIA2_SOM_GetBurstValues := iRetVal;
@@ -2014,22 +2404,25 @@ implementation
     iRetVal     : integer;
     iMType      : integer;
     byteDivider : byte;
-    strFkt      : string;
+  const
+    strFkt  = 'SEPIA2_SOM_SetBurstValues';
   begin
-    strFkt  := 'SEPIA2_SOM_SetBurstValues';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_SetBurstValues (iDevIdx, iSlotId, wDivider, bytePreSync, byteSyncMask);
-      else  begin
-        byteDivider := EnsureRange (wDivider, 1, 255);
-        if (($0000 or byteDivider) <> wDivider) then
-        begin
-          iRetVal := SEPIA2_ERR_SOM_ILLEGAL_FREQUENCY_DIVIDER;
-        end
-        else begin
-          iRetVal := _SEPIA2_SOM_SetBurstValues (iDevIdx, iSlotId, byteDivider, bytePreSync, byteSyncMask);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_SetBurstValues (iDevIdx, iSlotId, wDivider, bytePreSync, byteSyncMask);
+        else  begin
+          byteDivider := EnsureRange (wDivider, 1, 255);
+          if (($0000 or byteDivider) <> wDivider) then
+          begin
+            iRetVal := SEPIA2_ERR_SOM_ILLEGAL_FREQUENCY_DIVIDER;
+          end
+          else begin
+            iRetVal := _SEPIA2_SOM_SetBurstValues (iDevIdx, iSlotId, byteDivider, bytePreSync, byteSyncMask);
+          end;
         end;
       end;
     end;
@@ -2041,22 +2434,25 @@ implementation
   function SEPIA2_SOM_DecodeAUXINSequencerCtrl (iDevIdx, iSlotId: integer; iAuxInCtrl: integer; var cSequencerCtrl: string) : integer;
   var
     iRetVal          : integer;
-    strFkt           : string;
     iMType           : integer;
     iAuxInCtrl_      : integer;
+  const
+    strFkt  = 'SEPIA2_SOM_DecodeAUXINSequencerCtrl';
   begin
-    strFkt  := 'SEPIA2_SOM_DecodeAUXINSequencerCtrl';
     DebugOut (1, strFkt);
     iAuxInCtrl_      := EnsureRange (iAuxInCtrl, 0, 255);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_DecodeAUXINSequencerCtrl (iAuxInCtrl_, pcTmpVal1);
-      else
-        iRetVal := _SEPIA2_SOM_DecodeAUXINSequencerCtrl (iAuxInCtrl_, pcTmpVal1);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_DecodeAUXINSequencerCtrl (iAuxInCtrl_, pcTmpVal1);
+        else
+          iRetVal := _SEPIA2_SOM_DecodeAUXINSequencerCtrl (iAuxInCtrl_, pcTmpVal1);
+      end;
+      cSequencerCtrl := string (pcTmpVal1);
     end;
-    cSequencerCtrl := string (pcTmpVal1);
     SEPIA2_SOM_DecodeAUXINSequencerCtrl := iRetVal;
     DebugOut (0, strFkt, iRetVal);
   end;  // SEPIA2_SOM_DecodeAUXINSequencerCtrl
@@ -2065,20 +2461,23 @@ implementation
   function SEPIA2_SOM_GetAUXIOSequencerCtrl (iDevIdx, iSlotId: integer; var bAUXOutEnable: boolean; var byteAUXInSequencerCtrl: byte) : integer;
   var
     iRetVal          : integer;
-    strFkt           : string;
     iMType           : integer;
     byteAUXOutEnable : byte;
+  const
+    strFkt  = 'SEPIA2_SOM_GetAUXIOSequencerCtrl';
   begin
-    strFkt  := 'SEPIA2_SOM_GetAUXIOSequencerCtrl';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_GetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
-      else
-        iRetVal := _SEPIA2_SOM_GetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_GetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
+        else
+          iRetVal := _SEPIA2_SOM_GetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
+      end;
+      bAUXOutEnable := (byteAUXOutEnable <> 0);
     end;
-    bAUXOutEnable := (byteAUXOutEnable <> 0);
     SEPIA2_SOM_GetAUXIOSequencerCtrl := iRetVal;
     DebugOut (0, strFkt, iRetVal);
   end;  // SEPIA2_SOM_GetAUXIOSequencerCtrl
@@ -2087,19 +2486,22 @@ implementation
   function SEPIA2_SOM_SetAUXIOSequencerCtrl (iDevIdx, iSlotId: integer; bAUXOutEnable: boolean; byteAUXInSequencerCtrl: byte) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
     byteAUXOutEnable : byte;
+  const
+    strFkt  = 'SEPIA2_SOM_SetAUXIOSequencerCtrl';
   begin
-    strFkt  := 'SEPIA2_SOM_SetAUXIOSequencerCtrl';
     DebugOut (1, strFkt);
     byteAUXOutEnable := ifthen (bAUXOutEnable, 1, 0);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOMD:
-        iRetVal := _SEPIA2_SOMD_SetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
-      else
-        iRetVal := _SEPIA2_SOM_SetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOMD:
+          iRetVal := _SEPIA2_SOMD_SetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
+        else
+          iRetVal := _SEPIA2_SOM_SetAUXIOSequencerCtrl (iDevIdx, iSlotId, byteAUXOutEnable, byteAUXInSequencerCtrl);
+      end;
     end;
     SEPIA2_SOM_SetAUXIOSequencerCtrl := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -2109,22 +2511,25 @@ implementation
   function SEPIA2_SOMD_GetFreqTrigMode (iDevIdx, iSlotId: integer; var iFreqTrigIdx: integer; var bSynchronize: boolean) : integer;
   var
     iRetVal         : integer;
-    strFkt          : string;
     iMType          : integer;
     byteSynchronize : byte;
+  const
+    strFkt  = 'SEPIA2_SOMD_GetFreqTrigMode';
   begin
-    strFkt  := 'SEPIA2_SOMD_GetFreqTrigMode';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOM: begin
-        OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOM: begin
+          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOMD_GetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, byteSynchronize);
       end;
-      else
-        iRetVal := _SEPIA2_SOMD_GetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, byteSynchronize);
+      bSynchronize := (byteSynchronize <> 0);
     end;
-    bSynchronize := (byteSynchronize <> 0);
     SEPIA2_SOMD_GetFreqTrigMode := iRetVal;
     DebugOut (0, strFkt, iRetVal);
   end;  // SEPIA2_SOMD_GetFreqTrigMode
@@ -2133,21 +2538,24 @@ implementation
   function SEPIA2_SOMD_SetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx: integer; bSynchronize: boolean) : integer;
   var
     iRetVal         : integer;
-    strFkt          : string;
     iMType          : integer;
     byteSynchronize : byte;
+  const
+    strFkt  = 'SEPIA2_SOMD_SetFreqTrigMode';
   begin
-    strFkt  := 'SEPIA2_SOMD_SetFreqTrigMode';
     DebugOut (1, strFkt);
     byteSynchronize := ifthen (bSynchronize, 1, 0);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOM: begin
-        OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOM: begin
+          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOMD_SetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, byteSynchronize);
       end;
-      else
-        iRetVal := _SEPIA2_SOMD_SetFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, byteSynchronize);
     end;
     SEPIA2_SOMD_SetFreqTrigMode := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -2157,7 +2565,6 @@ implementation
   function SEPIA2_SOMD_GetSeqOutputInfos (iDevIdx, iSlotId: integer; byteSeqOutputIdx: byte; var bDelayed: boolean; var bForcedUndelayed: boolean; var byteOutCombi: byte; var bMaskedCombi: boolean; var f64CoarseDly: double; var iFineDly: integer) : integer;
   var
     iRetVal             : integer;
-    strFkt              : string;
     iMType              : integer;
     bbyteSeqOutputIdx   : byte;
     byteDelayed         : byte;
@@ -2166,8 +2573,9 @@ implementation
     byteMaskedCombi     : byte;
     dblCoarseDly        : double;
     bFineDly            : byte;
+  const
+    strFkt  = 'SEPIA2_SOMD_GetSeqOutputInfos';
   begin
-    strFkt  := 'SEPIA2_SOMD_GetSeqOutputInfos';
     DebugOut (1, strFkt);
     bbyteSeqOutputIdx  := EnsureRange (byteSeqOutputIdx, 1, SEPIA2_SOM_BURSTCHANNEL_COUNT);
     if (bbyteSeqOutputIdx <> byteSeqOutputIdx)
@@ -2176,20 +2584,23 @@ implementation
     end
     else begin
       iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-      case iMType of
-        SEPIA2OBJECT_SOM: begin
-          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+      if iRetVal = SEPIA2_ERR_NO_ERROR
+      then begin
+        case iMType of
+          SEPIA2OBJECT_SOM: begin
+            OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+            iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+          end;
+          else
+            iRetVal := _SEPIA2_SOMD_GetSeqOutputInfos (iDevIdx, iSlotId, bbyteSeqOutputIdx-1, byteDelayed, byteForcedUndelayed, bbyteOutCombi, byteMaskedCombi, dblCoarseDly, bFineDly);
         end;
-        else
-          iRetVal := _SEPIA2_SOMD_GetSeqOutputInfos (iDevIdx, iSlotId, bbyteSeqOutputIdx-1, byteDelayed, byteForcedUndelayed, bbyteOutCombi, byteMaskedCombi, dblCoarseDly, bFineDly);
+        f64CoarseDly := dblCoarseDly;
+        bDelayed := (byteDelayed <> 0);
+        bForcedUndelayed := (byteForcedUndelayed <> 0);
+        byteOutCombi := bbyteOutCombi;
+        bMaskedCombi := (byteMaskedCombi <> 0);
+        iFineDly := bFineDly;
       end;
-      f64CoarseDly := dblCoarseDly;
-      bDelayed := (byteDelayed <> 0);
-      bForcedUndelayed := (byteForcedUndelayed <> 0);
-      byteOutCombi := bbyteOutCombi;
-      bMaskedCombi := (byteMaskedCombi <> 0);
-      iFineDly := bFineDly;
     end;
     SEPIA2_SOMD_GetSeqOutputInfos := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -2199,14 +2610,14 @@ implementation
   function SEPIA2_SOMD_SetSeqOutputInfos (iDevIdx, iSlotId: integer; byteSeqOutputIdx: byte; bDelayed: boolean; byteOutCombi: byte; bMaskedCombi: boolean; f64CoarseDly: double; iFineDly: integer) : integer;
   var
     iRetVal           : integer;
-    strFkt            : string;
     iMType            : integer;
     bbyteSeqOutputIdx : byte;
     byteDelayed       : byte;
     byteMaskedCombi   : byte;
     byteFineDly       : byte;
+  const
+    strFkt  = 'SEPIA2_SOMD_SetSeqOutputInfos';
   begin
-    strFkt  := 'SEPIA2_SOMD_SetSeqOutputInfos';
     DebugOut (1, strFkt);
     byteDelayed       := ifthen (bDelayed, 1, 0);
     byteMaskedCombi   := ifthen (bMaskedCombi, 1, 0);
@@ -2218,13 +2629,16 @@ implementation
     end
     else begin
       iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-      case iMType of
-        SEPIA2OBJECT_SOM: begin
-          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+      if iRetVal = SEPIA2_ERR_NO_ERROR
+      then begin
+        case iMType of
+          SEPIA2OBJECT_SOM: begin
+            OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+            iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+          end;
+          else
+            iRetVal := _SEPIA2_SOMD_SetSeqOutputInfos (iDevIdx, iSlotId, byteSeqOutputIdx-1, byteDelayed, byteOutCombi, byteMaskedCombi, f64CoarseDly, byteFineDly);
         end;
-        else
-          iRetVal := _SEPIA2_SOMD_SetSeqOutputInfos (iDevIdx, iSlotId, byteSeqOutputIdx-1, byteDelayed, byteOutCombi, byteMaskedCombi, f64CoarseDly, byteFineDly);
       end;
     end;
     SEPIA2_SOMD_SetSeqOutputInfos := iRetVal;
@@ -2235,19 +2649,22 @@ implementation
   function SEPIA2_SOMD_SynchronizeNow (iDevIdx, iSlotId: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOMD_SynchronizeNow';
   begin
-    strFkt  := 'SEPIA2_SOMD_SynchronizeNow';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOM: begin
-        OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOM: begin
+          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOMD_SynchronizeNow (iDevIdx, iSlotId);
       end;
-      else
-        iRetVal := _SEPIA2_SOMD_SynchronizeNow (iDevIdx, iSlotId);
     end;
     SEPIA2_SOMD_SynchronizeNow := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -2257,9 +2674,9 @@ implementation
   function SEPIA2_SOMD_DecodeModuleState (wModuleState: Word; var cModuleState: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SOMD_DecodeModuleState';
   begin
-    strFkt  := 'SEPIA2_SOMD_DecodeModuleState';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SOMD_DecodeModuleState (wModuleState, pcTmpVal1);
@@ -2272,20 +2689,23 @@ implementation
   function SEPIA2_SOMD_GetStatusError (iDevIdx, iSlotId: integer; var wModuleState: word; var iErrorCode: integer) : integer;
   var
     iRetVal     : integer;
-    strFkt      : string;
     iMType      : integer;
     siErrorCode : SmallInt;
+  const
+    strFkt  = 'SEPIA2_SOMD_GetStatusError';
   begin
-    strFkt  := 'SEPIA2_SOMD_GetStatusError';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOM: begin
-        OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOM: begin
+          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOMD_GetStatusError (iDevIdx, iSlotId, wModuleState, siErrorCode);
       end;
-      else
-        iRetVal := _SEPIA2_SOMD_GetStatusError (iDevIdx, iSlotId, wModuleState, siErrorCode);
     end;
     iErrorCode := siErrorCode;
     SEPIA2_SOMD_GetStatusError := iRetVal;
@@ -2296,20 +2716,23 @@ implementation
   function SEPIA2_SOMD_GetTrigSyncFreq (iDevIdx, iSlotId: integer; var bSyncStable: boolean; var iTrigSyncFreq: integer) : integer;
   var
     iRetVal        : integer;
-    strFkt         : string;
     iMType         : integer;
     byteSyncStable : byte;
+  const
+    strFkt  = 'SEPIA2_SOMD_GetTrigSyncFreq';
   begin
-    strFkt  := 'SEPIA2_SOMD_GetTrigSyncFreq';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOM: begin
-        OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOM: begin
+          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOMD_GetTrigSyncFreq (iDevIdx, iSlotId, byteSyncStable, iTrigSyncFreq);
       end;
-      else
-        iRetVal := _SEPIA2_SOMD_GetTrigSyncFreq (iDevIdx, iSlotId, byteSyncStable, iTrigSyncFreq);
     end;
     bSyncStable := (byteSyncStable <> 0);
     SEPIA2_SOMD_GetTrigSyncFreq := iRetVal;
@@ -2320,19 +2743,22 @@ implementation
   function SEPIA2_SOMD_GetDelayUnits (iDevIdx, iSlotId: integer; var fCoarseDlyStep: double; var byteFineDlyStepCount: byte) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOMD_GetDelayUnits';
   begin
-    strFkt  := 'SEPIA2_SOMD_GetDelayUnits';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOM: begin
-        OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOM: begin
+          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOMD_GetDelayUnits (iDevIdx, iSlotId, fCoarseDlyStep, byteFineDlyStepCount);
       end;
-      else
-        iRetVal := _SEPIA2_SOMD_GetDelayUnits (iDevIdx, iSlotId, fCoarseDlyStep, byteFineDlyStepCount);
     end;
     SEPIA2_SOMD_GetDelayUnits := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -2342,19 +2768,22 @@ implementation
   function SEPIA2_SOMD_GetFWVersion (iDevIdx, iSlotId: integer; var FWVersion: T_SepiaModules_FWVersion) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     iMType  : integer;
+  const
+    strFkt  = 'SEPIA2_SOMD_GetFWVersion';
   begin
-    strFkt  := 'SEPIA2_SOMD_GetFWVersion';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_COM_GetModuleType (iDevIdx, iSlotId, 1, iMType);
-    case iMType of
-      SEPIA2OBJECT_SOM: begin
-        OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
-        iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+    if iRetVal = SEPIA2_ERR_NO_ERROR
+    then begin
+      case iMType of
+        SEPIA2OBJECT_SOM: begin
+          OutputDebugString (PChar ('Error: --- SOMD function "' + strFkt + '" called for SOM module!'));
+          iRetVal := SEPIA2_ERR_LIB_THIS_IS_NO_SOM_828_D_MODULE;
+        end;
+        else
+          iRetVal := _SEPIA2_SOMD_GetFWVersion (iDevIdx, iSlotId, FWVersion.ulVersion);
       end;
-      else
-        iRetVal := _SEPIA2_SOMD_GetFWVersion (iDevIdx, iSlotId, FWVersion.ulVersion);
     end;
     SEPIA2_SOMD_GetFWVersion := iRetVal;
     DebugOut (0, strFkt, iRetVal);
@@ -2364,9 +2793,9 @@ implementation
   function SEPIA2_SOMD_FWReadPage (iDevIdx, iSlotId: integer; wPageIdx: word; var FWPage: T_SOMD_FW_PAGE) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SOMD_FWReadPage';
   begin
-    strFkt  := 'SEPIA2_SOMD_FWReadPage';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SOMD_FWReadPage (iDevIdx, iSlotId, wPageIdx, FWPage);
     SEPIA2_SOMD_FWReadPage := iRetVal;
@@ -2377,9 +2806,9 @@ implementation
   function SEPIA2_SOMD_FWWritePage (iDevIdx, iSlotId: integer; wPageIdx: word; const FWPage: T_SOMD_FW_PAGE) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SOMD_FWWritePage';
   begin
-    strFkt  := 'SEPIA2_SOMD_FWWritePage';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SOMD_FWWritePage (iDevIdx, iSlotId, wPageIdx, FWPage);
     SEPIA2_SOMD_FWWritePage := iRetVal;
@@ -2390,22 +2819,22 @@ implementation
   function SEPIA2_SOMD_GetHWParams (iDevIdx, iSlotId: integer; var wHWParamTemp1, wHWParamTemp2, wHWParamTemp3, wHWParamVolt1, wHWParamVolt2, wHWParamVolt3, wHWParamVolt4, wHWParamAUX : word) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SOMD_GetHWParams';
   begin
-    strFkt  := 'SEPIA2_SOMD_GetHWParams';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SOMD_GetHWParams (iDevIdx, iSlotId, wHWParamTemp1, wHWParamTemp2, wHWParamTemp3, wHWParamVolt1, wHWParamVolt2, wHWParamVolt3, wHWParamVolt4, wHWParamAUX);
     SEPIA2_SOMD_GetHWParams := iRetVal;
     DebugOut (0, strFkt, iRetVal);
-  end;
+  end; // SEPIA2_SOMD_GetHWParams
 
 
   function SEPIA2_SWM_DecodeRangeIdx (iDevIdx, iSlotId: integer; iRangeIdx: integer; var iUpperLimit: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWM_DecodeRangeIdx';
   begin
-    strFkt  := 'SEPIA2_SWM_DecodeRangeIdx';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWM_DecodeRangeIdx (iDevIdx, iSlotId, iRangeIdx, iUpperLimit);
     SEPIA2_SWM_DecodeRangeIdx := iRetVal;
@@ -2416,9 +2845,9 @@ implementation
   function SEPIA2_SWM_GetUIConstants (iDevIdx, iSlotId: integer; var byteTBIdxCount: byte; var wMaxAmplitude, wMaxSlewRate, wExpRampEffect, wMinUserValue, wMaxUserValue, wUserResolution: word) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWM_GetUIConstants';
   begin
-    strFkt  := 'SEPIA2_SWM_GetUIConstants';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWM_GetUIConstants (iDevIdx, iSlotId, byteTBIdxCount, wMaxAmplitude, wMaxSlewRate, wExpRampEffect, wMinUserValue, wMaxUserValue, wUserResolution);
     SEPIA2_SWM_GetUIConstants := iRetVal;
@@ -2429,9 +2858,9 @@ implementation
   function SEPIA2_SWM_GetCurveParams (iDevIdx, iSlotId: integer; iCurveIdx: integer; var byteTBIdx: byte; var wPAPml, wRRPml, wPSPml, wRSPml, wWSPml: word) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWM_GetCurveParams';
   begin
-    strFkt  := 'SEPIA2_SWM_GetCurveParams';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWM_GetCurveParams (iDevIdx, iSlotId, iCurveIdx, byteTBIdx, wPAPml, wRRPml, wPSPml, wRSPml, wWSPml);
     SEPIA2_SWM_GetCurveParams := iRetVal;
@@ -2442,9 +2871,10 @@ implementation
   function SEPIA2_SWM_SetCurveParams (iDevIdx, iSlotId: integer; iCurveIdx: integer; byteTBIdx: byte; wPAPml, wRRPml, wPSPml, wRSPml, wWSPml: word) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+
+  const
+    strFkt  = 'SEPIA2_SWM_SetCurveParams';
   begin
-    strFkt  := 'SEPIA2_SWM_SetCurveParams';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWM_SetCurveParams (iDevIdx, iSlotId, iCurveIdx, byteTBIdx, wPAPml, wRRPml, wPSPml, wRSPml, wWSPml);
     SEPIA2_SWM_SetCurveParams := iRetVal;
@@ -2455,9 +2885,9 @@ implementation
   function SEPIA2_SWM_GetExtAtten (iDevIdx, iSlotId: integer; var fExtAtt: Single) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWM_GetExtAtten';
   begin
-    strFkt  := 'SEPIA2_SWM_GetExtAtten';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWM_GetExtAtten (iDevIdx, iSlotId, fExtAtt);
     SEPIA2_SWM_GetExtAtten := iRetVal;
@@ -2468,9 +2898,9 @@ implementation
   function SEPIA2_SWM_SetExtAtten (iDevIdx, iSlotId: integer; fExtAtt: Single) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWM_SetExtAtten';
   begin
-    strFkt  := 'SEPIA2_SWM_SetExtAtten';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWM_SetExtAtten (iDevIdx, iSlotId, fExtAtt);
     SEPIA2_SWM_SetExtAtten := iRetVal;
@@ -2478,52 +2908,13 @@ implementation
   end; // SEPIA2_SWM_SetExtAtten
 
 
-  function SEPIA2_SWM_GetCalTableVal (iDevIdx, iSlotId: integer; cTableName: string; byteTabRow, byteTabCol: byte; var wValue: word) : integer;
-  var
-    iRetVal : integer;
-    strFkt  : string;
-    strTN   : AnsiString;
-  begin
-    strFkt  := 'SEPIA2_SWM_GetCalTableVal';
-    DebugOut (1, strFkt);
-    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
-    if (Length (cTableName) > 0)
-    then begin
-      strTN := AnsiString (cTableName);
-      StrCopy (pcTmpVal1, PAnsiChar(strTN));
-    end;
-    iRetVal := _SEPIA2_SWM_GetCalTableVal (iDevIdx, iSlotId, pcTmpVal1, byteTabRow, byteTabCol, wValue);
-    SEPIA2_SWM_GetCalTableVal := iRetVal;
-    DebugOut (0, strFkt, iRetVal);
-  end; // SEPIA2_SWM_GetCalTableVal
-
-
-  function SEPIA2_SWM_SetCalTableVal (iDevIdx, iSlotId: integer; cTableName: string; byteTabRow, byteTabCol: byte; wValue: word) : integer;
-  var
-    iRetVal : integer;
-    strFkt  : string;
-    strTN   : AnsiString;
-  begin
-    strFkt  := 'SEPIA2_SWM_SetCalTableVal';
-    DebugOut (1, strFkt);
-    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
-    if (Length (cTableName) > 0)
-    then begin
-      strTN := AnsiString (cTableName);
-      StrCopy (pcTmpVal1, PAnsiChar(strTN));
-    end;
-    iRetVal := _SEPIA2_SWM_SetCalTableVal (iDevIdx, iSlotId, pcTmpVal1, byteTabRow, byteTabCol, wValue);
-    SEPIA2_SWM_SetCalTableVal := iRetVal;
-    DebugOut (0, strFkt, iRetVal);
-  end; // SEPIA2_SWM_SetCalTableVal
-
 
   function SEPIA2_VCL_GetUIConstants (iDevIdx, iSlotId: integer; var iMinUserValueTmp, iMaxUserValueTmp, iUserResolutionTmp : integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_VCL_GetUIConstants';
   begin
-    strFkt  := 'SEPIA2_VCL_GetUIConstants';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_VCL_GetUIConstants (iDevIdx, iSlotId, iMinUserValueTmp, iMaxUserValueTmp, iUserResolutionTmp);
     SEPIA2_VCL_GetUIConstants := iRetVal;
@@ -2534,9 +2925,9 @@ implementation
   function SEPIA2_VCL_GetTemperature (iDevIdx, iSlotId: integer; var iTemperature : integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_VCL_GetTemperature';
   begin
-    strFkt  := 'SEPIA2_VCL_GetTemperature';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_VCL_GetTemperature (iDevIdx, iSlotId, iTemperature);
     SEPIA2_VCL_GetTemperature := iRetVal;
@@ -2547,9 +2938,9 @@ implementation
   function SEPIA2_VCL_SetTemperature (iDevIdx, iSlotId: integer; iTemperature : integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_VCL_SetTemperature';
   begin
-    strFkt  := 'SEPIA2_VCL_SetTemperature';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_VCL_SetTemperature (iDevIdx, iSlotId, iTemperature);
     SEPIA2_VCL_SetTemperature := iRetVal;
@@ -2560,9 +2951,9 @@ implementation
   function SEPIA2_VCL_GetBiasVoltage (iDevIdx, iSlotId: integer; var iBiasVoltage : integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_VCL_GetBiasVoltage';
   begin
-    strFkt  := 'SEPIA2_VCL_GetBiasVoltage';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_VCL_GetBiasVoltage (iDevIdx, iSlotId, iBiasVoltage);
     SEPIA2_VCL_GetBiasVoltage := iRetVal;
@@ -2570,12 +2961,27 @@ implementation
   end; // SEPIA2_VCL_GetBiasVoltage
 
 
+  function SEPIA2_SPM_GetDeviceDescription (iDevIdx, iSlotId: integer; var cDeviceDescription: string) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_SPM_GetDeviceDescription';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_SPM_GetDeviceDescription (iDevIdx, iSlotId, pcTmpVal1);
+    cDeviceDescription := string(pcTmpVal1);
+    SEPIA2_SPM_GetDeviceDescription := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_SPM_GetDeviceDescription
+
+
   function SEPIA2_SPM_GetFWVersion (iDevIdx, iSlotId: integer; var FWVersion: T_SepiaModules_FWVersion) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SPM_GetFWVersion';
   begin
-    strFkt  := 'SEPIA2_SPM_GetFWVersion';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SPM_GetFWVersion (iDevIdx, iSlotId, FWVersion.ulVersion);
     SEPIA2_SPM_GetFWVersion := iRetVal;
@@ -2586,9 +2992,9 @@ implementation
   function SEPIA2_SPM_DecodeModuleState (wModuleState: Word; var cModuleState: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SPM_DecodeModuleState';
   begin
-    strFkt  := 'SEPIA2_SPM_DecodeModuleState';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SPM_DecodeModuleState (wModuleState, pcTmpVal1);
@@ -2601,9 +3007,9 @@ implementation
   function SEPIA2_SPM_GetSensorData (iDevIdx, iSlotId: integer; var SensorData: T_SPM_SensorData) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SPM_GetSensorData';
   begin
-    strFkt  := 'SEPIA2_SPM_GetSensorData';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SPM_GetSensorData (iDevIdx, iSlotId, SensorData);
     SEPIA2_SPM_GetSensorData := iRetVal;
@@ -2614,9 +3020,9 @@ implementation
   function SEPIA2_SPM_GetTemperatureAdjust (iDevIdx, iSlotId: integer; var Temperatures: T_SPM_Temperatures) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SPM_GetTemperatureAdjust';
   begin
-    strFkt  := 'SEPIA2_SPM_GetTemperatureAdjust';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SPM_GetTemperatureAdjust (iDevIdx, iSlotId, Temperatures);
     SEPIA2_SPM_GetTemperatureAdjust := iRetVal;
@@ -2627,9 +3033,9 @@ implementation
   function SEPIA2_SPM_GetStatusError (iDevIdx, iSlotId: integer; var wModuleState: word; var iErrorCode: SmallInt) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SPM_GetStatusError';
   begin
-    strFkt  := 'SEPIA2_SPM_GetStatusError';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SPM_GetStatusError (iDevIdx, iSlotId, wModuleState, iErrorCode);
     SEPIA2_SPM_GetStatusError := iRetVal;
@@ -2640,10 +3046,10 @@ implementation
   function SEPIA2_SPM_UpdateFirmware (iDevIdx, iSlotId: integer; cFileName: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     strTemp : AnsiString;
+  const
+    strFkt  = 'SEPIA2_SPM_UpdateFirmware';
   begin
-    strFkt  := 'SEPIA2_SPM_UpdateFirmware';
     DebugOut (1, strFkt);
     strTemp := AnsiString (cFileName);
     iRetVal := _SEPIA2_SPM_UpdateFirmware (iDevIdx, iSlotId, PAnsiChar (strTemp));
@@ -2655,10 +3061,10 @@ implementation
   function SEPIA2_SPM_SetFRAMWriteProtect (iDevIdx, iSlotId: integer; bWriteProtect: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteWriteProtect : Byte;
+  const
+    strFkt  = 'SEPIA2_SPM_SetFRAMWriteProtect';
   begin
-    strFkt  := 'SEPIA2_SPM_SetFRAMWriteProtect';
     DebugOut (1, strFkt);
     byteWriteProtect := Byte (ifthen (bWriteProtect, SEPIA2_API_SPM_FRAM_WRITE_PROTECTED, SEPIA2_API_SPM_FRAM_WRITE_ENABLED));
     iRetVal := _SEPIA2_SPM_SetFRAMWriteProtect (iDevIdx, iSlotId, byteWriteProtect);
@@ -2670,10 +3076,10 @@ implementation
   function SEPIA2_SPM_GetFiberAmplifierFail (iDevIdx, iSlotId: integer; var bFiberAmpFail: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteFiberAmpFail : byte;
+  const
+    strFkt  = 'SEPIA2_SPM_GetFiberAmplifierFail';
   begin
-    strFkt  := 'SEPIA2_SPM_GetFiberAmplifierFail';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SPM_GetFiberAmplifierFail (iDevIdx, iSlotId, byteFiberAmpFail);
     if (iRetVal = SEPIA2_ERR_NO_ERROR)
@@ -2688,10 +3094,10 @@ implementation
   function SEPIA2_SPM_ResetFiberAmplifierFail (iDevIdx, iSlotId: integer; bFiberAmpFail: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteFiberAmpFail : byte;
+  const
+    strFkt  = 'SEPIA2_SPM_ResetFiberAmplifierFail';
   begin
-    strFkt  := 'SEPIA2_SPM_ResetFiberAmplifierFail';
     DebugOut (1, strFkt);
     byteFiberAmpFail := ifthen (bFiberAmpFail, SEPIA2_API_SPM_FIBERAMPLIFIER_FAILURE, SEPIA2_API_SPM_FIBERAMPLIFIER_OK);
     iRetVal := _SEPIA2_SPM_ResetFiberAmplifierFail (iDevIdx, iSlotId, byteFiberAmpFail);
@@ -2703,11 +3109,11 @@ implementation
   function SEPIA2_SPM_GetPumpPowerState (iDevIdx, iSlotId: integer; var bIsPumpStateEco, bIsPumpModeDynamic: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     bytePumpState : byte;
     bytePumpMode  : byte;
+  const
+    strFkt  = 'SEPIA2_SPM_GetPumpPowerState';
   begin
-    strFkt  := 'SEPIA2_SPM_GetPumpPowerState';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SPM_GetPumpPowerState (iDevIdx, iSlotId, bytePumpState, bytePumpMode);
     if (iRetVal = SEPIA2_ERR_NO_ERROR)
@@ -2723,11 +3129,11 @@ implementation
   function SEPIA2_SPM_SetPumpPowerState (iDevIdx, iSlotId: integer; bIsPumpStateEco, bIsPumpModeDynamic: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     bytePumpState: byte;
     bytePumpMode: byte;
+  const
+    strFkt  = 'SEPIA2_SPM_SetPumpPowerState';
   begin
-    strFkt  := 'SEPIA2_SPM_SetPumpPowerState';
     DebugOut (1, strFkt);
     bytePumpState := ifthen (bIsPumpStateEco,    SEPIA2_API_SPM_PUMPSTATE_ECOMODE, SEPIA2_API_SPM_PUMPSTATE_BOOSTMODE);
     bytePumpMode  := ifthen (bIsPumpModeDynamic, SEPIA2_API_SPM_PUMPMODE_DYNAMIC,  SEPIA2_API_SPM_PUMPMODE_STATIC);
@@ -2740,9 +3146,9 @@ implementation
   function SEPIA2_SPM_GetOperationTimers (iDevIdx, iSlotId: integer; var dwMainPwrSw_Counter, dwUT_OverAll, dwUT_SinceDelivery, dwUT_SinceFibChg  : Cardinal) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SPM_GetOperationTimers';
   begin
-    strFkt  := 'SEPIA2_SPM_GetOperationTimers';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SPM_GetOperationTimers (iDevIdx, iSlotId, dwMainPwrSw_Counter, dwUT_OverAll, dwUT_SinceDelivery, dwUT_SinceFibChg);
     SEPIA2_SPM_GetOperationTimers := iRetVal;
@@ -2753,9 +3159,9 @@ implementation
   function SEPIA2_SWS_DecodeModuleType (iModuleType: integer; var cModuleType: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_DecodeModuleType';
   begin
-    strFkt  := 'SEPIA2_SWS_DecodeModuleType';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SWS_DecodeModuleType (iModuleType, pcTmpVal1);
@@ -2768,9 +3174,9 @@ implementation
   function SEPIA2_SWS_DecodeModuleState (wModuleState: Word; var cModuleState: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_DecodeModuleState';
   begin
-    strFkt  := 'SEPIA2_SWS_DecodeModuleState';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SWS_DecodeModuleState (wModuleState, pcTmpVal1);
@@ -2783,9 +3189,9 @@ implementation
   function SEPIA2_SWS_GetModuleType (iDevIdx, iSlotId: integer; var iModuleType: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_GetModuleType';
   begin
-    strFkt  := 'SEPIA2_SWS_GetModuleType';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_GetModuleType (iDevIdx, iSlotId, iModuleType);
     SEPIA2_SWS_GetModuleType := iRetVal;
@@ -2796,9 +3202,9 @@ implementation
   function SEPIA2_SWS_GetStatusError (iDevIdx, iSlotId: integer; var wModuleState: word; var iErrorCode: SmallInt) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_GetStatusError';
   begin
-    strFkt  := 'SEPIA2_SWS_GetStatusError';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_GetStatusError (iDevIdx, iSlotId, wModuleState, iErrorCode);
     SEPIA2_SWS_GetStatusError := iRetVal;
@@ -2809,9 +3215,9 @@ implementation
   function SEPIA2_SWS_GetParamRanges (iDevIdx, iSlotId: integer; var ulUpperWL, ulLowerWL, ulIncrWL, ulPPMToggleWL, ulUpperBW, ulLowerBW, ulIncrBW: Cardinal; var iUpperAtten, iLowerAtten, iIncrAtten: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_GetParamRanges';
   begin
-    strFkt  := 'SEPIA2_SWS_GetParamRanges';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_GetParamRanges (iDevIdx, iSlotId, ulUpperWL, ulLowerWL, ulIncrWL, ulPPMToggleWL, ulUpperBW, ulLowerBW, ulIncrBW, iUpperAtten, iLowerAtten, iIncrAtten);
     SEPIA2_SWS_GetParamRanges := iRetVal;
@@ -2822,9 +3228,9 @@ implementation
   function SEPIA2_SWS_GetParameters (iDevIdx, iSlotId: integer; var ulWaveLength, ulBandWidth: Cardinal) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_GetParameters';
   begin
-    strFkt  := 'SEPIA2_SWS_GetParameters';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_GetParameters (iDevIdx, iSlotId, ulWaveLength, ulBandWidth);
     SEPIA2_SWS_GetParameters := iRetVal;
@@ -2835,9 +3241,9 @@ implementation
   function SEPIA2_SWS_SetParameters (iDevIdx, iSlotId: integer; ulWaveLength, ulBandWidth: Cardinal) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_SetParameters';
   begin
-    strFkt  := 'SEPIA2_SWS_SetParameters';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_SetParameters (iDevIdx, iSlotId, ulWaveLength, ulBandWidth);
     SEPIA2_SWS_SetParameters := iRetVal;
@@ -2848,9 +3254,9 @@ implementation
   function SEPIA2_SWS_GetIntensity (iDevIdx, iSlotId: integer; var ulIntensRaw: Cardinal; var fIntensity: Single) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_GetIntensity';
   begin
-    strFkt  := 'SEPIA2_SWS_GetIntensity';
     DebugOut (1, strFkt);
     iREtVal := _SEPIA2_SWS_GetIntensity (iDevIdx, iSlotId, ulIntensRaw, fIntensity);
     SEPIA2_SWS_GetIntensity := iRetVal;
@@ -2861,9 +3267,9 @@ implementation
   function SEPIA2_SWS_GetFWVersion (iDevIdx, iSlotId: integer; var FWVersion: T_SepiaModules_FWVersion) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_GetFWVersion';
   begin
-    strFkt  := 'SEPIA2_SWS_GetFWVersion';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_GetFWVersion (iDevIdx, iSlotId, FWVersion.ulVersion);
     SEPIA2_SWS_GetFWVersion := iRetVal;
@@ -2874,10 +3280,10 @@ implementation
   function SEPIA2_SWS_UpdateFirmware (iDevIdx, iSlotId: integer; cFileName: string) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     strTemp : AnsiString;
+  const
+    strFkt  = 'SEPIA2_SWS_UpdateFirmware';
   begin
-    strFkt  := 'SEPIA2_SWS_UpdateFirmware';
     DebugOut (1, strFkt);
     strTemp := AnsiString (cFileName);
     iRetVal := _SEPIA2_SWS_UpdateFirmware (iDevIdx, iSlotId, PAnsiChar (strTemp));
@@ -2889,10 +3295,10 @@ implementation
   function SEPIA2_SWS_SetFRAMWriteProtect (iDevIdx, iSlotId: integer; bWriteProtect: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteWriteProtect : Byte;
+  const
+    strFkt  = 'SEPIA2_SWS_SetFRAMWriteProtect';
   begin
-    strFkt  := 'SEPIA2_SWS_SetFRAMWriteProtect';
     DebugOut (1, strFkt);
     byteWriteProtect := Byte (ifthen (bWriteProtect, 1, 0));
     iRetVal := _SEPIA2_SWS_SetFRAMWriteProtect (iDevIdx, iSlotId, byteWriteProtect);
@@ -2904,11 +3310,11 @@ implementation
   function SEPIA2_SWS_GetBeamPos (iDevIdx, iSlotId: integer; var iBeamPosV, iBeamPosH: integer) : integer;
   var
     iRetVal  : integer;
-    strFkt   : string;
     BeamPosV : SmallInt;
     BeamPosH : SmallInt;
+  const
+    strFkt  = 'SEPIA2_SWS_GetBeamPos';
   begin
-    strFkt  := 'SEPIA2_SWS_GetBeamPos';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_GetBeamPos (iDevIdx, iSlotId, BeamPosV, BeamPosH);
     iBeamPosV := BeamPosV;
@@ -2921,10 +3327,10 @@ implementation
   function SEPIA2_SWS_SetBeamPos (iDevIdx, iSlotId: integer; iBeamPosV, iBeamPosH: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     BeamPosV, BeamPosH : SmallInt;
+  const
+    strFkt  = 'SEPIA2_SWS_SetBeamPos';
   begin
-    strFkt  := 'SEPIA2_SWS_SetBeamPos';
     DebugOut (1, strFkt);
     BeamPosV := SmallInt (EnsureRange (iBeamPosV, Low (SmallInt), High (SmallInt)));
     BeamPosH := SmallInt (EnsureRange (iBeamPosH, Low (SmallInt), High (SmallInt)));
@@ -2937,10 +3343,10 @@ implementation
   function SEPIA2_SWS_SetCalibrationMode (iDevIdx, iSlotId: integer; bCalibrationMode: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteCalibrationMode : Byte;
+  const
+    strFkt  = 'SEPIA2_SWS_SetCalibrationMode';
   begin
-    strFkt  := 'SEPIA2_SWS_SetCalibrationMode';
     DebugOut (1, strFkt);
     byteCalibrationMode := Byte (ifthen (bCalibrationMode, 1, 0));
     iRetVal := _SEPIA2_SWS_SetCalibrationMode (iDevIdx, iSlotId, byteCalibrationMode);
@@ -2952,9 +3358,9 @@ implementation
   function SEPIA2_SWS_GetCalTableSize (iDevIdx, iSlotId: integer; var wWLIdxCount, wBWIdxCount: word) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SWS_GetCalTableSize';
   begin
-    strFkt  := 'SEPIA2_SWS_GetCalTableSize';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SWS_GetCalTableSize (iDevIdx, iSlotId, wWLIdxCount, wBWIdxCount);
     SEPIA2_SWS_GetCalTableSize := iRetVal;
@@ -2965,13 +3371,13 @@ implementation
   function SEPIA2_SWS_GetCalPointInfo (iDevIdx, iSlotId: integer; iWLIdx, iBWIdx: integer; var ulWaveLength, ulBandWidth: Cardinal; var iBeamPosV, iBeamPosH: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     WLIdx,
     BWIdx,
     BeamPosV,
     BeamPosH : SmallInt;
+  const
+    strFkt  = 'SEPIA2_SWS_GetCalPointInfo';
   begin
-    strFkt  := 'SEPIA2_SWS_GetCalPointInfo';
     DebugOut (1, strFkt);
     WLIdx    := SmallInt (EnsureRange (iWLIdx, -1, High (SmallInt)));
     BWIdx    := SmallInt (EnsureRange (iBWIdx, -1, High (SmallInt)));
@@ -2988,13 +3394,13 @@ implementation
   function SEPIA2_SWS_SetCalPointValues (iDevIdx, iSlotId: integer; iWLIdx, iBWIdx, iBeamPosV, iBeamPosH: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     WLIdx,
     BWIdx,
     BeamPosV,
     BeamPosH : SmallInt;
+  const
+    strFkt  = 'SEPIA2_SWS_SetCalPointValues';
   begin
-    strFkt  := 'SEPIA2_SWS_SetCalPointValues';
     DebugOut (1, strFkt);
     WLIdx    := SmallInt (EnsureRange (iWLIdx, -1, High (SmallInt)));
     BWIdx    := SmallInt (EnsureRange (iBWIdx, -1, High (SmallInt)));
@@ -3010,10 +3416,10 @@ implementation
   function SEPIA2_SWS_SetCalTableSize (iDevIdx, iSlotId: integer; wWLIdxCount, wBWIdxCount: word; bInit: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteInit : byte;
+  const
+    strFkt  = 'SEPIA2_SWS_SetCalTableSize';
   begin
-    strFkt  := 'SEPIA2_SWS_SetCalTableSize';
     DebugOut (1, strFkt);
     //
     byteInit := ifthen (bInit, 1, 0);
@@ -3026,10 +3432,10 @@ implementation
   function SEPIA2_SSM_DecodeFreqTrigMode (iDevIdx, iSlotId: integer; iFreqTrigIdx: integer; var cFreqTrigMode: string; var iMainFreq: integer; var bEnableTrigLvl: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteEnableTrigLvl : byte;
+  const
+    strFkt  = 'SEPIA2_SSM_DecodeFreqTrigMode';
   begin
-    strFkt  := 'SEPIA2_SSM_DecodeFreqTrigMode';
     DebugOut (1, strFkt);
     FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
     iRetVal := _SEPIA2_SSM_DecodeFreqTrigMode (iDevIdx, iSlotId, iFreqTrigIdx, pcTmpVal1, iMainFreq, byteEnableTrigLvl);
@@ -3043,9 +3449,9 @@ implementation
   function SEPIA2_SSM_GetTrigLevelRange (iDevIdx, iSlotId: integer; var iUpperTrigLevel, iLowerTrigLevel, iTrigLevelResol: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SSM_GetTrigLevelRange';
   begin
-    strFkt  := 'SEPIA2_SSM_GetTrigLevelRange';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SSM_GetTrigLevelRange (iDevIdx, iSlotId, iUpperTrigLevel, iLowerTrigLevel, iTrigLevelResol);
     SEPIA2_SSM_GetTrigLevelRange := iRetVal;
@@ -3056,9 +3462,9 @@ implementation
   function SEPIA2_SSM_GetTriggerData (iDevIdx, iSlotId: integer; var iFreqTrigIdx, iTrigLevel: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SSM_GetTriggerData';
   begin
-    strFkt  := 'SEPIA2_SSM_GetTriggerData';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SSM_GetTriggerData (iDevIdx, iSlotId, iFreqTrigIdx, iTrigLevel);
     SEPIA2_SSM_GetTriggerData := iRetVal;
@@ -3069,9 +3475,9 @@ implementation
   function SEPIA2_SSM_SetTriggerData (iDevIdx, iSlotId: integer; iFreqTrigIdx, iTrigLevel: integer) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SSM_SetTriggerData';
   begin
-    strFkt  := 'SEPIA2_SSM_SetTriggerData';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SSM_SetTriggerData (iDevIdx, iSlotId, iFreqTrigIdx, iTrigLevel);
     SEPIA2_SSM_SetTriggerData := iRetVal;
@@ -3082,10 +3488,10 @@ implementation
   function SEPIA2_SSM_GetFRAMWriteProtect (iDevIdx, iSlotId: integer; var bWriteProtect: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
     byteWriteProtect : byte;
+  const
+    strFkt  = 'SEPIA2_SSM_GetFRAMWriteProtect';
   begin
-    strFkt  := 'SEPIA2_SSM_GetFRAMWriteProtect';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SSM_GetFRAMWriteProtect (iDevIdx, iSlotId, byteWriteProtect);
     bWriteProtect := (byteWriteProtect <> 0);
@@ -3097,9 +3503,9 @@ implementation
   function SEPIA2_SSM_SetFRAMWriteProtect (iDevIdx, iSlotId: integer; bWriteProtect: boolean) : integer;
   var
     iRetVal : integer;
-    strFkt  : string;
+  const
+    strFkt  = 'SEPIA2_SSM_SetFRAMWriteProtect';
   begin
-    strFkt  := 'SEPIA2_SSM_SetFRAMWriteProtect';
     DebugOut (1, strFkt);
     iRetVal := _SEPIA2_SSM_SetFRAMWriteProtect (iDevIdx, iSlotId, byte (ifthen (bWriteProtect, 1, 0)));
     SEPIA2_SSM_SetFRAMWriteProtect := iRetVal;
@@ -3107,337 +3513,911 @@ implementation
   end; // SEPIA2_SSM_SetFRAMWriteProtect
 
 
+  function SEPIA2_VUV_VIR_GetDeviceType (iDevIdx, iSlotId: integer; var cDeviceType: string; var bOptCW, bOptFanSwitch: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteOptCW,
+    byteOptFanSwitch : byte;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_GetDeviceType';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_VUV_VIR_GetDeviceType (iDevIdx, iSlotId, pcTmpVal1, byteOptCW, byteOptFanSwitch);
+    bOptCW  := (byteOptCW <> 0);
+    bOptFanSwitch := (byteOptFanSwitch <> 0);
+    cDeviceType  := string(pcTmpVal1);
+    SEPIA2_VUV_VIR_GetDeviceType := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_GetDeviceType
 
-var
-  strBuffer : string;
+
+  function SEPIA2_VUV_VIR_DecodeFreqTrigMode (iDevIdx, iSlotId: integer; iTrigSourceIdx, iFreqDividerIdx: integer; var cFreqTrigMode: string; var iMainFreq: integer; var bEnableDivList, bEnableTrigLvl: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteEnableDivList,
+    byteEnableTrigLvl : byte;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_DecodeFreqTrigMode';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_VUV_VIR_DecodeFreqTrigMode (iDevIdx, iSlotId, iTrigSourceIdx, iFreqDividerIdx, pcTmpVal1, iMainFreq, byteEnableDivList, byteEnableTrigLvl);
+    bEnableDivList := (byteEnableDivList <> 0);
+    bEnableTrigLvl := (byteEnableTrigLvl <> 0);
+    cFreqTrigMode  := string(pcTmpVal1);
+    SEPIA2_VUV_VIR_DecodeFreqTrigMode := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_DecodeFreqTrigMode
+
+
+  function SEPIA2_VUV_VIR_GetTrigLevelRange (iDevIdx, iSlotId: integer; var iUpperTrigLevel, iLowerTrigLevel, iTrigLevelResol: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_GetTrigLevelRange';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_VUV_VIR_GetTrigLevelRange (iDevIdx, iSlotId, iUpperTrigLevel, iLowerTrigLevel, iTrigLevelResol);
+    SEPIA2_VUV_VIR_GetTrigLevelRange := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_GetTrigLevelRange
+
+
+  function SEPIA2_VUV_VIR_GetTriggerData (iDevIdx, iSlotId: integer; var iTrigSrcIdx, iFreqDivIdx, iTrigLevel: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_GetTriggerData';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_VUV_VIR_GetTriggerData (iDevIdx, iSlotId, iTrigSrcIdx, iFreqDivIdx, iTrigLevel);
+    SEPIA2_VUV_VIR_GetTriggerData := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_GetTriggerData
+
+  function SEPIA2_VUV_VIR_SetTriggerData (iDevIdx, iSlotId: integer; iTrigSrcIdx, iFreqDivIdx, iTrigLevel: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_SetTriggerData';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_VUV_VIR_SetTriggerData (iDevIdx, iSlotId, iTrigSrcIdx, iFreqDivIdx, iTrigLevel);
+    SEPIA2_VUV_VIR_SetTriggerData := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_SetTriggerData
+
+
+  function SEPIA2_VUV_VIR_GetIntensityRange (iDevIdx, iSlotId: integer; var iUpperIntens, iLowerIntens, iIntensResol: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_GetIntensityRange';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_VUV_VIR_GetIntensityRange (iDevIdx, iSlotId, iUpperIntens, iLowerIntens, iIntensResol);
+    SEPIA2_VUV_VIR_GetIntensityRange := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_GetIntensityRange
+
+
+  function SEPIA2_VUV_VIR_GetIntensity (iDevIdx, iSlotId: integer; var iIntensity: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_GetIntensity';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_VUV_VIR_GetIntensity (iDevIdx, iSlotId, iIntensity);
+    SEPIA2_VUV_VIR_GetIntensity := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_GetIntensity
+
+  function SEPIA2_VUV_VIR_SetIntensity (iDevIdx, iSlotId: integer; iIntensity: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_SetIntensity';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_VUV_VIR_SetIntensity (iDevIdx, iSlotId, iIntensity);
+    SEPIA2_VUV_VIR_SetIntensity := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_SetIntensity
+
+  function SEPIA2_VUV_VIR_GetFan (iDevIdx, iSlotId: integer; var bFanRunning: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteFanRunning : Byte;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_GetFan';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_VUV_VIR_GetFan (iDevIdx, iSlotId, byteFanRunning);
+    bFanRunning := (byteFanRunning > 0);
+    SEPIA2_VUV_VIR_GetFan := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_GetFan
+
+  function SEPIA2_VUV_VIR_SetFan (iDevIdx, iSlotId: integer; bFanRunning: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteFanRunning : Byte;
+  const
+    strFkt  = 'SEPIA2_VUV_VIR_SetFan';
+  begin
+    DebugOut (1, strFkt);
+    byteFanRunning := Byte(ifthen(bFanRunning, 1, 0));
+    iRetVal := _SEPIA2_VUV_VIR_SetFan (iDevIdx, iSlotId, byteFanRunning);
+    SEPIA2_VUV_VIR_SetFan := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_VUV_VIR_SetFan
+
+
+
+
+
+  function SEPIA2_PRI_GetConstants (iDevIdx, iSlotId: integer; var PRIConstants: T_PRI_Constants) : integer;
+  var
+    Ret: Integer;
+    Idx: Integer;
+    OpMod: String;
+    TrSrc: String;
+    bDummy1: Boolean;
+    bDummy2: Boolean;
+  begin
+    Ret := SEPIA2_ERR_NO_ERROR;
+    try
+      if (@PRIConstants = nil) then
+      begin
+        Ret := SEPIA2_ERR_LIB_ILLEGAL_PARAMETER_ON_FUNCTION_CALL;
+        Result := Ret;
+        exit;
+      end;
+      FillChar(PRIConstants, sizeof(T_PRI_Constants), 0);
+      FillChar(PRIConstants.PrimaUSBIdx, Integer(NativeInt(sizeof(T_PRI_Constants)) + NativeInt(@PRIConstants) - NativeInt(@(PRIConstants.PrimaUSBIdx))), $FF);
+      //
+      with PRIConstants do
+      begin
+        PrimaUSBIdx := iDevIdx;
+        PrimaSlotId := iSlotId;
+        //
+        if SEPIA2_PRI_GetDeviceInfo(iDevIdx, iSlotId, PrimaModuleID, PrimaModuleType, PrimaFWVers, PrimaWLCount) = SEPIA2_ERR_NO_ERROR then
+        begin
+          PrimaModuleID   := trim(PrimaModuleID);
+          PrimaModuleType := trim(PrimaModuleType);
+          PrimaFWVers     := trim(PrimaFWVers);
+          //
+          for Idx := 0 to PrimaWLCount-1 do
+          begin
+            Ret := SEPIA2_PRI_DecodeWavelength (iDevIdx, iSlotId, Idx, PrimaWLs[Idx]);
+            if Ret <> SEPIA2_ERR_NO_ERROR then
+              break;
+          end;
+          //
+          if Ret = SEPIA2_ERR_NO_ERROR then
+          begin
+            for Idx := 0 to 7 do // 7 is definitely bigger!
+            begin
+              Ret := SEPIA2_PRI_DecodeOperationMode(iDevIdx, iSlotId, Idx, OpMod);
+              if Ret <> SEPIA2_ERR_NO_ERROR then
+              begin
+                if (Ret = SEPIA2_ERR_PRI_ILLEGAL_OPERATION_MODE_INDEX) then
+                begin
+                  Ret := SEPIA2_ERR_NO_ERROR;
+                  PrimaOpModCount := Idx;
+                end;
+                break;
+              end
+              else begin
+                OpMod := OpMod.ToLower;
+                if OpMod.Contains('off') then
+                begin
+                  PrimaOpModOff := Idx;
+                end
+                else if OpMod.Contains('narrow') then
+                begin
+                  PrimaOpModNarrow := Idx;
+                end
+                else if OpMod.Contains('broad') then
+                begin
+                  PrimaOpModBroad := Idx;
+                end
+                else if OpMod.Contains('cw') then
+                begin
+                  PrimaOpModCW := Idx;
+                end;
+              end;
+            end; // for
+          end;
+          //
+          if Ret = SEPIA2_ERR_NO_ERROR then
+          begin
+            for Idx := 0 to 7 do // 7 is definitely bigger!
+            begin
+              Ret := SEPIA2_PRI_DecodeTriggerSource (iDevIdx, iSlotId, Idx, TrSrc, bDummy1, bDummy2);
+              if Ret <> SEPIA2_ERR_NO_ERROR then
+              begin
+                if (Ret = SEPIA2_ERR_PRI_ILLEGAL_TRIGGER_SOURCE_INDEX) then
+                begin
+                  Ret := SEPIA2_ERR_NO_ERROR;
+                  PrimaTrSrcCount := Idx;
+                end;
+                break;
+              end
+              else begin
+                TrSrc := TrSrc.ToLower;
+                if TrSrc.Contains('int') then
+                begin
+                  PrimaTrSrcInt := Idx;
+                end
+                else if TrSrc.Contains('ext') then
+                begin
+                  if TrSrc.Contains('nim') then
+                  begin
+                    PrimaTrSrcExtNIM := Idx;
+                  end
+                  else if TrSrc.Contains('ttl') then
+                  begin
+                    PrimaTrSrcExtTTL := Idx;
+                  end
+                  else if TrSrc.Contains('fal') then
+                  begin
+                    PrimaTrSrcExtFalling := Idx;
+                  end
+                  else if TrSrc.Contains('ris') then
+                  begin
+                    PrimaTrSrcExtRising := Idx;
+                  end;
+                end; // TrSrc.Contains('ext')
+              end; // else Ret <> SEPIA2_ERR_NO_ERROR
+            end; // for TriggerSources
+            //
+            if Ret = SEPIA2_ERR_NO_ERROR then
+            begin
+              PrimaTemp_min := PRI_SupPnts_Temperature[ Low(PRI_SupPnts_Temperature)];
+              PrimaTemp_max := PRI_SupPnts_Temperature[High(PRI_SupPnts_Temperature)];
+            end;
+            //
+          end; // Ret = SEPIA2_ERR_NO_ERROR
+        end; // GetDeviceInfo
+        if Ret = SEPIA2_ERR_NO_ERROR then
+          bInitialized := true;
+      end; // with PRIConstants
+      //
+    finally
+      Result := Ret;
+    end;
+    //
+  end; // SEPIA2_PRI_GetConstants
+
+
+  function SEPIA2_PRI_GetDeviceInfo (iDevIdx, iSlotId: integer; var cPRIModuleID: string; var cPRIModuleType: string; var cFW_Vers: string; var iWLCount: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetDeviceInfo';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    FillChar(pcTmpVal2^, TEMPVAR_LENGTH, #0);
+    FillChar(pcTmpVal3^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_PRI_GetDeviceInfo (iDevIdx, iSlotId, pcTmpVal1, pcTmpVal2, pcTmpVal3, iWLCount);
+    cPRIModuleID   := string(pcTmpVal1);
+    cPRIModuleType := string(pcTmpVal2);
+    cFW_Vers       := string(pcTmpVal3);
+    SEPIA2_PRI_GetDeviceInfo := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetDeviceInfo
+
+
+  function SEPIA2_PRI_DecodeOperationMode (iDevIdx, iSlotId: integer; iOpModeIdx: integer; var cOpMode: string) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_DecodeOperationMode';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_PRI_DecodeOperationMode (iDevIdx, iSlotId, iOpModeIdx, pcTmpVal1);
+    cOpMode  := string(pcTmpVal1);
+    SEPIA2_PRI_DecodeOperationMode := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_DecodeOperationMode
+
+
+  function SEPIA2_PRI_GetOperationMode (iDevIdx, iSlotId: integer; var iOpModeIdx: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetOperationMode';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetOperationMode (iDevIdx, iSlotId, iOpModeIdx);
+    SEPIA2_PRI_GetOperationMode := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetOperationMode
+
+  function SEPIA2_PRI_SetOperationMode (iDevIdx, iSlotId: integer; iOpModeIdx: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_SetOperationMode';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_SetOperationMode (iDevIdx, iSlotId, iOpModeIdx);
+    SEPIA2_PRI_SetOperationMode := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetOperationMode
+
+
+  function SEPIA2_PRI_DecodeWavelength (iDevIdx, iSlotId: integer; iWLIdx: integer; var iWL: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_DecodeWavelength';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_DecodeWavelength (iDevIdx, iSlotId, iWLIdx, iWL);
+    SEPIA2_PRI_DecodeWavelength := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_DecodeWavelength
+
+
+  function SEPIA2_PRI_GetWavelengthIdx (iDevIdx, iSlotId: integer; var iWLIdx: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetWavelengthIdx';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetWavelengthIdx (iDevIdx, iSlotId, iWLIdx);
+    SEPIA2_PRI_GetWavelengthIdx := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetWavelengthIdx
+
+  function SEPIA2_PRI_SetWavelengthIdx (iDevIdx, iSlotId: integer; iWLIdx: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_SetWavelengthIdx';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_SetWavelengthIdx (iDevIdx, iSlotId, iWLIdx);
+    SEPIA2_PRI_SetWavelengthIdx := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetWavelengthIdx
+
+
+  function SEPIA2_PRI_GetIntensity (iDevIdx, iSlotId: integer; iWLIdx: integer; var wIntensity: word) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetIntensity';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetIntensity (iDevIdx, iSlotId, iWLIdx, wIntensity);
+    SEPIA2_PRI_GetIntensity := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetIntensity
+
+  function SEPIA2_PRI_SetIntensity (iDevIdx, iSlotId: integer; iWLIdx: integer; wIntensity: word) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_SetIntensity';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_SetIntensity (iDevIdx, iSlotId, iWLIdx, wIntensity);
+    SEPIA2_PRI_SetIntensity := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetIntensity
+
+
+  function SEPIA2_PRI_GetFrequencyLimits (iDevIdx, iSlotId: integer; var iMinFreq: integer; var iMaxFreq: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetFrequencyLimits';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetFrequencyLimits (iDevIdx, iSlotId, iMinFreq, iMaxFreq);
+    SEPIA2_PRI_GetFrequencyLimits := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetFrequencyLimits
+
+  function SEPIA2_PRI_GetFrequency (iDevIdx, iSlotId: integer; var iFrequency: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetFrequency';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetFrequency (iDevIdx, iSlotId, iFrequency);
+    SEPIA2_PRI_GetFrequency := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetFrequency
+
+  function SEPIA2_PRI_SetFrequency (iDevIdx, iSlotId: integer; iFrequency: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_SetFrequency';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_SetFrequency (iDevIdx, iSlotId, iFrequency);
+    SEPIA2_PRI_SetFrequency := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetFrequency
+
+
+  function SEPIA2_PRI_DecodeTriggerSource (iDevIdx, iSlotId: integer; iTrgSrcIdx: integer; var cTrgSrc: string; var bEnableFrequency, bEnableTrigLvl: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteEnableFrequency,
+    byteEnableTrigLvl : byte;
+  const
+    strFkt  = 'SEPIA2_PRI_DecodeTriggerSource';
+  begin
+    DebugOut (1, strFkt);
+    FillChar(pcTmpVal1^, TEMPVAR_LENGTH, #0);
+    iRetVal := _SEPIA2_PRI_DecodeTriggerSource (iDevIdx, iSlotId, iTrgSrcIdx, pcTmpVal1, byteEnableFrequency, byteEnableTrigLvl);
+    bEnableFrequency := (byteEnableFrequency <> 0);
+    bEnableTrigLvl := (byteEnableTrigLvl <> 0);
+    cTrgSrc  := string(pcTmpVal1);
+    SEPIA2_PRI_DecodeTriggerSource := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_DecodeTriggerSource
+
+
+  function SEPIA2_PRI_GetTriggerSource (iDevIdx, iSlotId: integer; var iTrgSrcIdx: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetTriggerSource';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetTriggerSource (iDevIdx, iSlotId, iTrgSrcIdx);
+    SEPIA2_PRI_GetTriggerSource := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetTriggerSource
+
+  function SEPIA2_PRI_SetTriggerSource (iDevIdx, iSlotId: integer; iTrgSrcIdx: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_SetTriggerSource';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_SetTriggerSource (iDevIdx, iSlotId, iTrgSrcIdx);
+    SEPIA2_PRI_SetTriggerSource := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetTriggerSource
+
+
+  function SEPIA2_PRI_GetTriggerLevelLimits (iDevIdx, iSlotId: integer; var iTrgMinLvl: integer; var iTrgMaxLvl: integer; var iTrgLvlRes: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetTriggerLevelLimits';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetTriggerLevelLimits (iDevIdx, iSlotId, iTrgMinLvl, iTrgMaxLvl, iTrgLvlRes);
+    SEPIA2_PRI_GetTriggerLevelLimits := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetTriggerLevelLimits
+
+  function SEPIA2_PRI_GetTriggerLevel (iDevIdx, iSlotId: integer; var iTrgLevel: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetTriggerLevel';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetTriggerLevel (iDevIdx, iSlotId, iTrgLevel);
+    SEPIA2_PRI_GetTriggerLevel := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetTriggerLevel
+
+  function SEPIA2_PRI_SetTriggerLevel (iDevIdx, iSlotId: integer; iTrgLevel: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_SetTriggerLevel';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_SetTriggerLevel (iDevIdx, iSlotId, iTrgLevel);
+    SEPIA2_PRI_SetTriggerLevel := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetTriggerLevel
+
+
+  function SEPIA2_PRI_GetGatingLimits (iDevIdx, iSlotId: integer; var iMinOnTime: integer; var iMaxOnTime: integer; var iMinOffTimefactor: integer; var iMaxOffTimefactor: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetGatingLimits';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetGatingLimits (iDevIdx, iSlotId, iMinOnTime, iMaxOnTime, iMinOffTimefactor, iMaxOffTimefactor);
+    SEPIA2_PRI_GetGatingLimits := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetGatingLimits
+
+  function SEPIA2_PRI_GetGatingData (iDevIdx, iSlotId: integer; var iOnTime: integer; var iOffTimefact: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_GetGatingData';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetGatingData (iDevIdx, iSlotId, iOnTime, iOffTimefact);
+    SEPIA2_PRI_GetGatingData := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetGatingData
+
+  function SEPIA2_PRI_SetGatingData (iDevIdx, iSlotId: integer; iOnTime: integer; iOffTimefact: integer) : integer;
+  var
+    iRetVal : integer;
+  const
+    strFkt  = 'SEPIA2_PRI_SetGatingData';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_SetGatingData (iDevIdx, iSlotId, iOnTime, iOffTimefact);
+    SEPIA2_PRI_SetGatingData := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetGatingData
+
+  function SEPIA2_PRI_GetGatingEnabled (iDevIdx, iSlotId: integer; var bGatingEnabled: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteGatingEnabled : Byte;
+  const
+    strFkt  = 'SEPIA2_PRI_GetGatingEnabled';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetGatingEnabled (iDevIdx, iSlotId, byteGatingEnabled);
+    bGatingEnabled := (byteGatingEnabled > 0);
+    SEPIA2_PRI_GetGatingEnabled := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetGatingEnabled
+
+  function SEPIA2_PRI_SetGatingEnabled (iDevIdx, iSlotId: integer; bGatingEnabled: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteGatingEnabled : Byte;
+  const
+    strFkt  = 'SEPIA2_PRI_SetGatingEnabled';
+  begin
+    DebugOut (1, strFkt);
+    byteGatingEnabled := Byte(ifthen(bGatingEnabled, 1, 0));
+    iRetVal := _SEPIA2_PRI_SetGatingEnabled (iDevIdx, iSlotId, byteGatingEnabled);
+    SEPIA2_PRI_SetGatingEnabled := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetGatingEnabled
+
+  function SEPIA2_PRI_GetGateHighImpedance (iDevIdx, iSlotId: integer; var bHighImp: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteHighImp : Byte;
+  const
+    strFkt  = 'SEPIA2_PRI_GetGateHighImpedance';
+  begin
+    DebugOut (1, strFkt);
+    iRetVal := _SEPIA2_PRI_GetGateHighImpedance (iDevIdx, iSlotId, byteHighImp);
+    bHighImp := (byteHighImp > 0);
+    SEPIA2_PRI_GetGateHighImpedance := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_GetGateHighImpedance
+
+  function SEPIA2_PRI_SetGateHighImpedance (iDevIdx, iSlotId: integer; bHighImp: boolean) : integer;
+  var
+    iRetVal : integer;
+    byteHighImp : Byte;
+  const
+    strFkt  = 'SEPIA2_PRI_SetGateHighImpedance';
+  begin
+    DebugOut (1, strFkt);
+    byteHighImp := Byte(ifthen(bHighImp, 1, 0));
+    iRetVal := _SEPIA2_PRI_SetGateHighImpedance (iDevIdx, iSlotId, byteHighImp);
+    SEPIA2_PRI_SetGateHighImpedance := iRetVal;
+    DebugOut (0, strFkt, iRetVal);
+  end; // SEPIA2_PRI_SetGateHighImpedance
+
+
+  function GetDLLFunction(Name: PAnsiChar; Default: Pointer = nil): FARPROC;
+  begin
+    Result := GetProcAddress(hdlDLL, Name);
+    if not Assigned(Result) then
+    begin
+      if Assigned(Default) then
+        Result := Default
+      else
+        bSepia2ImportLibOK := False;
+    end;
+    //
+    if bSepia2ImportLibOK and Assigned (Result) then
+      inc(iDLLFuncsCount);
+  end;
+
 
 initialization
   {$ifdef __CALL_DEBUGOUT__}
     bActiveDebugOut  := false;
   {$endif}
-  fsDecode                 := TFormatSettings.Create ('en-US');
-  fsDecode.DateSeparator   := '/';
-  fsDecode.ShortDateFormat := 'yy/mm/dd';
 
-  pcTmpVal1          := AllocMem  (TEMPVAR_LENGTH);
-  pcTmpVal2          := AllocMem  (TEMPVAR_LENGTH);
-  pcTmpLongVal1      := AllocMem  (TEMPLONGVAR_LENGTH);
-  pcTmpLongVal2      := AllocMem  (TEMPLONGVAR_LENGTH);
-  bSepia2ImportLibOK := true;
-  //
-  hdlDLL             := LoadLibrary (STR_LIB_NAME);
-  //
-  if hdlDLL = 0
-  then begin
-    //writeln ('Library Sepia2_lib.dll not found!');
-    bSepia2ImportLibOK := false;
+  try
+    FormatSettings_enUS                 := TFormatSettings.Create ('en-US');
+    FormatSettings_enUS.DateSeparator   := '/';
+    FormatSettings_enUS.ShortDateFormat := 'yy/mm/dd';
+
+    pcTmpVal1          := AllocMem  (TEMPVAR_LENGTH);
+    pcTmpVal2          := AllocMem  (TEMPVAR_LENGTH);
+    pcTmpVal3          := AllocMem  (TEMPVAR_LENGTH);
+    pcTmpLongVal1      := AllocMem  (TEMPLONGVAR_LENGTH);
+    pcTmpLongVal2      := AllocMem  (TEMPLONGVAR_LENGTH);
+    bSepia2ImportLibOK := true;
+    iDLLFuncsCount     := 0;
     //
-    exit;
-  end
-  else begin
-    @_SEPIA2_LIB_GetVersion                  := GetProcAddress (hdlDLL, 'SEPIA2_LIB_GetVersion');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_LIB_GetVersion <> nil);
-    @_SEPIA2_LIB_IsRunningOnWine             := GetProcAddress (hdlDLL, 'SEPIA2_LIB_IsRunningOnWine');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_LIB_IsRunningOnWine <> nil);
-    @_SEPIA2_LIB_DecodeError                 := GetProcAddress (hdlDLL, 'SEPIA2_LIB_DecodeError');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_LIB_DecodeError <> nil);
+    hdlDLL             := LoadLibrary (STR_LIB_NAME);
     //
-    @_SEPIA2_USB_OpenDevice                  := GetProcAddress (hdlDLL, 'SEPIA2_USB_OpenDevice');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_USB_OpenDevice <> nil);
-    @_SEPIA2_USB_OpenGetSerNumAndClose       := GetProcAddress (hdlDLL, 'SEPIA2_USB_OpenGetSerNumAndClose');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_USB_OpenGetSerNumAndClose <> nil);
-    @_SEPIA2_USB_CloseDevice                 := GetProcAddress (hdlDLL, 'SEPIA2_USB_CloseDevice');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_USB_CloseDevice <> nil);
-    @_SEPIA2_USB_GetStrDescriptor            := GetProcAddress (hdlDLL, 'SEPIA2_USB_GetStrDescriptor');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_USB_GetStrDescriptor <> nil);
-    //
-    @_SEPIA2_FWR_GetVersion                  := GetProcAddress (hdlDLL, 'SEPIA2_FWR_GetVersion');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_GetVersion <> nil);
-    @_SEPIA2_FWR_GetLastError                := GetProcAddress (hdlDLL, 'SEPIA2_FWR_GetLastError');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_GetLastError <> nil);
-    @_SEPIA2_FWR_DecodeErrPhaseName          := GetProcAddress (hdlDLL, 'SEPIA2_FWR_DecodeErrPhaseName');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_DecodeErrPhaseName <> nil);
-    @_SEPIA2_FWR_GetWorkingMode              := GetProcAddress (hdlDLL, 'SEPIA2_FWR_GetWorkingMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_GetWorkingMode <> nil);
-    @_SEPIA2_FWR_SetWorkingMode              := GetProcAddress (hdlDLL, 'SEPIA2_FWR_SetWorkingMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_SetWorkingMode <> nil);
-    @_SEPIA2_FWR_RollBackToPermanentValues   := GetProcAddress (hdlDLL, 'SEPIA2_FWR_RollBackToPermanentValues');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_RollBackToPermanentValues <> nil);
-    @_SEPIA2_FWR_StoreAsPermanentValues      := GetProcAddress (hdlDLL, 'SEPIA2_FWR_StoreAsPermanentValues');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_StoreAsPermanentValues <> nil);
-    @_SEPIA2_FWR_GetModuleMap                := GetProcAddress (hdlDLL, 'SEPIA2_FWR_GetModuleMap');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_GetModuleMap <> nil);
-    @_SEPIA2_FWR_GetModuleInfoByMapIdx       := GetProcAddress (hdlDLL, 'SEPIA2_FWR_GetModuleInfoByMapIdx');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_GetModuleInfoByMapIdx <> nil);
-    @_SEPIA2_FWR_GetUptimeInfoByMapIdx       := GetProcAddress (hdlDLL, 'SEPIA2_FWR_GetUptimeInfoByMapIdx');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_GetUptimeInfoByMapIdx <> nil);
-    @_SEPIA2_FWR_CreateSupportRequestText    := GetProcAddress (hdlDLL, 'SEPIA2_FWR_CreateSupportRequestText');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_CreateSupportRequestText <> nil);
-    @_SEPIA2_FWR_FreeModuleMap               := GetProcAddress (hdlDLL, 'SEPIA2_FWR_FreeModuleMap');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_FWR_FreeModuleMap <> nil);
-    //
-    @_SEPIA2_COM_DecodeModuleType            := GetProcAddress (hdlDLL, 'SEPIA2_COM_DecodeModuleType');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_DecodeModuleType <> nil);
-    @_SEPIA2_COM_DecodeModuleTypeAbbr        := GetProcAddress (hdlDLL, 'SEPIA2_COM_DecodeModuleTypeAbbr');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_DecodeModuleTypeAbbr <> nil);
-    @_SEPIA2_COM_GetModuleType               := GetProcAddress (hdlDLL, 'SEPIA2_COM_GetModuleType');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_GetModuleType <> nil);
-    @_SEPIA2_COM_GetSerialNumber             := GetProcAddress (hdlDLL, 'SEPIA2_COM_GetSerialNumber');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_GetSerialNumber <> nil);
-    @_SEPIA2_COM_GetSupplementaryInfos       := GetProcAddress (hdlDLL, 'SEPIA2_COM_GetSupplementaryInfos');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_GetSupplementaryInfos <> nil);
-    @_SEPIA2_COM_HasSecondaryModule          := GetProcAddress (hdlDLL, 'SEPIA2_COM_HasSecondaryModule');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_HasSecondaryModule <> nil);
-    @_SEPIA2_COM_GetPresetInfo               := GetProcAddress (hdlDLL, 'SEPIA2_COM_GetPresetInfo');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_GetPresetInfo <> nil);
-    @_SEPIA2_COM_RecallPreset                := GetProcAddress (hdlDLL, 'SEPIA2_COM_RecallPreset');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_RecallPreset <> nil);
-    @_SEPIA2_COM_SaveAsPreset                := GetProcAddress (hdlDLL, 'SEPIA2_COM_SaveAsPreset');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_SaveAsPreset <> nil);
-    @_SEPIA2_COM_IsWritableModule            := GetProcAddress (hdlDLL, 'SEPIA2_COM_IsWritableModule');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_IsWritableModule <> nil);
-    @_SEPIA2_COM_UpdateModuleData            := GetProcAddress (hdlDLL, 'SEPIA2_COM_UpdateModuleData');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_COM_UpdateModuleData <> nil);
-    //
-    @_SEPIA2_SCM_GetPowerAndLaserLEDS        := GetProcAddress (hdlDLL, 'SEPIA2_SCM_GetPowerAndLaserLEDS');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SCM_GetPowerAndLaserLEDS <> nil);
-    @_SEPIA2_SCM_GetLaserLocked              := GetProcAddress (hdlDLL, 'SEPIA2_SCM_GetLaserLocked');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SCM_GetLaserLocked <> nil);
-    @_SEPIA2_SCM_GetLaserSoftLock            := GetProcAddress (hdlDLL, 'SEPIA2_SCM_GetLaserSoftLock');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SCM_GetLaserSoftLock <> nil);
-    @_SEPIA2_SCM_SetLaserSoftLock            := GetProcAddress (hdlDLL, 'SEPIA2_SCM_SetLaserSoftLock');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SCM_SetLaserSoftLock <> nil);
-    //
-    @_SEPIA2_SLM_DecodeFreqTrigMode          := GetProcAddress (hdlDLL, 'SEPIA2_SLM_DecodeFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_DecodeFreqTrigMode <> nil);
-    @_SEPIA2_SLM_DecodeHeadType              := GetProcAddress (hdlDLL, 'SEPIA2_SLM_DecodeHeadType');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_DecodeHeadType <> nil);
-    //
-{$ifdef __INCLUDE_DEPRECATED_SLM_FUNCTIONS__}
-    @_SEPIA2_SLM_GetParameters               := GetProcAddress (hdlDLL, 'SEPIA2_SLM_GetParameters');                                   // deprecated
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_GetParameters <> nil);
-    // deprecated  : SEPIA2_SLM_GetParameters;
-    // use instead : SEPIA2_SLM_GetIntensityFineStep, SEPIA2_SLM_GetPulseParameters
-    @_SEPIA2_SLM_SetParameters               := GetProcAddress (hdlDLL, 'SEPIA2_SLM_SetParameters');                                   // deprecated
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_SetParameters <> nil);
-    // deprecated  : SEPIA2_SLM_SetParameters;
-    // use instead : SEPIA2_SLM_SetIntensityFineStep, SEPIA2_SLM_SetPulseParameters
-{$endif}
-    //
-    @_SEPIA2_SLM_GetIntensityFineStep        := GetProcAddress (hdlDLL, 'SEPIA2_SLM_GetIntensityFineStep');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_GetIntensityFineStep <> nil);
-    @_SEPIA2_SLM_SetIntensityFineStep        := GetProcAddress (hdlDLL, 'SEPIA2_SLM_SetIntensityFineStep');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_SetIntensityFineStep <> nil);
-    @_SEPIA2_SLM_GetPulseParameters          := GetProcAddress (hdlDLL, 'SEPIA2_SLM_GetPulseParameters');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_GetPulseParameters <> nil);
-    @_SEPIA2_SLM_SetPulseParameters          := GetProcAddress (hdlDLL, 'SEPIA2_SLM_SetPulseParameters');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SLM_SetPulseParameters <> nil);
-    //
-    @_SEPIA2_SML_DecodeHeadType              := GetProcAddress (hdlDLL, 'SEPIA2_SML_DecodeHeadType');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SML_DecodeHeadType <> nil);
-    @_SEPIA2_SML_GetParameters               := GetProcAddress (hdlDLL, 'SEPIA2_SML_GetParameters');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SML_GetParameters <> nil);
-    @_SEPIA2_SML_SetParameters               := GetProcAddress (hdlDLL, 'SEPIA2_SML_SetParameters');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SML_SetParameters <> nil);
-    //
-    @_SEPIA2_SOM_DecodeFreqTrigMode          := GetProcAddress (hdlDLL, 'SEPIA2_SOM_DecodeFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_DecodeFreqTrigMode <> nil);
-    @_SEPIA2_SOM_GetFreqTrigMode             := GetProcAddress (hdlDLL, 'SEPIA2_SOM_GetFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_GetFreqTrigMode <> nil);
-    @_SEPIA2_SOM_SetFreqTrigMode             := GetProcAddress (hdlDLL, 'SEPIA2_SOM_SetFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_SetFreqTrigMode <> nil);
-    @_SEPIA2_SOM_GetTriggerRange             := GetProcAddress (hdlDLL, 'SEPIA2_SOM_GetTriggerRange');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_GetTriggerRange <> nil);
-    @_SEPIA2_SOM_GetTriggerLevel             := GetProcAddress (hdlDLL, 'SEPIA2_SOM_GetTriggerLevel');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_GetTriggerLevel <> nil);
-    @_SEPIA2_SOM_SetTriggerLevel             := GetProcAddress (hdlDLL, 'SEPIA2_SOM_SetTriggerLevel');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_SetTriggerLevel <> nil);
-    @_SEPIA2_SOM_GetBurstValues              := GetProcAddress (hdlDLL, 'SEPIA2_SOM_GetBurstValues');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_GetBurstValues <> nil);
-    @_SEPIA2_SOM_SetBurstValues              := GetProcAddress (hdlDLL, 'SEPIA2_SOM_SetBurstValues');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_SetBurstValues <> nil);
-    @_SEPIA2_SOM_GetBurstLengthArray         := GetProcAddress (hdlDLL, 'SEPIA2_SOM_GetBurstLengthArray');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_GetBurstLengthArray <> nil);
-    @_SEPIA2_SOM_SetBurstLengthArray         := GetProcAddress (hdlDLL, 'SEPIA2_SOM_SetBurstLengthArray');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_SetBurstLengthArray <> nil);
-    @_SEPIA2_SOM_GetOutNSyncEnable           := GetProcAddress (hdlDLL, 'SEPIA2_SOM_GetOutNSyncEnable');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_GetOutNSyncEnable <> nil);
-    @_SEPIA2_SOM_SetOutNSyncEnable           := GetProcAddress (hdlDLL, 'SEPIA2_SOM_SetOutNSyncEnable');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_SetOutNSyncEnable <> nil);
-    @_SEPIA2_SOM_DecodeAUXINSequencerCtrl    := GetProcAddress (hdlDLL, 'SEPIA2_SOM_DecodeAUXINSequencerCtrl');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_DecodeAUXINSequencerCtrl <> nil);
-    @_SEPIA2_SOM_GetAUXIOSequencerCtrl       := GetProcAddress (hdlDLL, 'SEPIA2_SOM_GetAUXIOSequencerCtrl');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_GetAUXIOSequencerCtrl <> nil);
-    @_SEPIA2_SOM_SetAUXIOSequencerCtrl       := GetProcAddress (hdlDLL, 'SEPIA2_SOM_SetAUXIOSequencerCtrl');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOM_SetAUXIOSequencerCtrl <> nil);
-    //
-    @_SEPIA2_SOMD_DecodeFreqTrigMode         := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_DecodeFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_DecodeFreqTrigMode <> nil);
-    @_SEPIA2_SOMD_GetFreqTrigMode            := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetFreqTrigMode <> nil);
-    @_SEPIA2_SOMD_SetFreqTrigMode            := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SetFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SetFreqTrigMode <> nil);
-    @_SEPIA2_SOMD_GetTriggerRange            := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetTriggerRange');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetTriggerRange <> nil);
-    @_SEPIA2_SOMD_GetTriggerLevel            := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetTriggerLevel');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetTriggerLevel <> nil);
-    @_SEPIA2_SOMD_SetTriggerLevel            := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SetTriggerLevel');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SetTriggerLevel <> nil);
-    @_SEPIA2_SOMD_GetBurstValues             := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetBurstValues');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetBurstValues <> nil);
-    @_SEPIA2_SOMD_SetBurstValues             := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SetBurstValues');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SetBurstValues <> nil);
-    @_SEPIA2_SOMD_GetBurstLengthArray        := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetBurstLengthArray');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetBurstLengthArray <> nil);
-    @_SEPIA2_SOMD_SetBurstLengthArray        := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SetBurstLengthArray');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SetBurstLengthArray <> nil);
-    @_SEPIA2_SOMD_GetOutNSyncEnable          := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetOutNSyncEnable');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetOutNSyncEnable <> nil);
-    @_SEPIA2_SOMD_SetOutNSyncEnable          := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SetOutNSyncEnable');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SetOutNSyncEnable <> nil);
-    @_SEPIA2_SOMD_DecodeAUXINSequencerCtrl   := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_DecodeAUXINSequencerCtrl');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_DecodeAUXINSequencerCtrl <> nil);
-    @_SEPIA2_SOMD_GetAUXIOSequencerCtrl      := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetAUXIOSequencerCtrl');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetAUXIOSequencerCtrl <> nil);
-    @_SEPIA2_SOMD_SetAUXIOSequencerCtrl      := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SetAUXIOSequencerCtrl');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SetAUXIOSequencerCtrl <> nil);
-    @_SEPIA2_SOMD_GetSeqOutputInfos          := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetSeqOutputInfos');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetSeqOutputInfos <> nil);
-    @_SEPIA2_SOMD_SetSeqOutputInfos          := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SetSeqOutputInfos');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SetSeqOutputInfos <> nil);
-    //
-    @_SEPIA2_SOMD_SynchronizeNow             := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_SynchronizeNow');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_SynchronizeNow <> nil);
-    @_SEPIA2_SOMD_DecodeModuleState          := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_DecodeModuleState');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_DecodeModuleState <> nil);
-    @_SEPIA2_SOMD_GetStatusError             := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetStatusError');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetStatusError <> nil);
-    @_SEPIA2_SOMD_GetTrigSyncFreq            := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetTrigSyncFreq');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetTrigSyncFreq <> nil);
-    @_SEPIA2_SOMD_GetDelayUnits              := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetDelayUnits');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetDelayUnits <> nil);
-    @_SEPIA2_SOMD_GetFWVersion               := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetFWVersion');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetFWVersion <> nil);
-    @_SEPIA2_SOMD_FWReadPage                 := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_FWReadPage');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_FWReadPage <> nil);
-    @_SEPIA2_SOMD_FWWritePage                := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_FWWritePage');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_FWWritePage <> nil);
-    @_SEPIA2_SOMD_GetHWParams                := GetProcAddress (hdlDLL, 'SEPIA2_SOMD_GetHWParams');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SOMD_GetHWParams <> nil);
-    //
-    @_SEPIA2_SWM_DecodeRangeIdx              := GetProcAddress (hdlDLL, 'SEPIA2_SWM_DecodeRangeIdx');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWM_DecodeRangeIdx <> nil);
-    @_SEPIA2_SWM_GetUIConstants              := GetProcAddress (hdlDLL, 'SEPIA2_SWM_GetUIConstants');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWM_GetUIConstants <> nil);
-    @_SEPIA2_SWM_GetCurveParams              := GetProcAddress (hdlDLL, 'SEPIA2_SWM_GetCurveParams');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWM_GetCurveParams <> nil);
-    @_SEPIA2_SWM_SetCurveParams              := GetProcAddress (hdlDLL, 'SEPIA2_SWM_SetCurveParams');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWM_SetCurveParams <> nil);
-    @_SEPIA2_SWM_GetExtAtten                 := GetProcAddress (hdlDLL, 'SEPIA2_SWM_GetExtAtten');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWM_GetExtAtten <> nil);
-    @_SEPIA2_SWM_SetExtAtten                 := GetProcAddress (hdlDLL, 'SEPIA2_SWM_SetExtAtten');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWM_SetExtAtten <> nil);
-    //
-    @_SEPIA2_VCL_GetUIConstants              := GetProcAddress (hdlDLL, 'SEPIA2_VCL_GetUIConstants');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_VCL_GetUIConstants <> nil);
-    @_SEPIA2_VCL_GetTemperature              := GetProcAddress (hdlDLL, 'SEPIA2_VCL_GetTemperature');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_VCL_GetTemperature <> nil);
-    @_SEPIA2_VCL_SetTemperature              := GetProcAddress (hdlDLL, 'SEPIA2_VCL_SetTemperature');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_VCL_SetTemperature <> nil);
-    @_SEPIA2_VCL_GetBiasVoltage              := GetProcAddress (hdlDLL, 'SEPIA2_VCL_GetBiasVoltage');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_VCL_GetBiasVoltage <> nil);
-    //
-    @_SEPIA2_SPM_DecodeModuleState           := GetProcAddress (hdlDLL, 'SEPIA2_SPM_DecodeModuleState');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_DecodeModuleState <> nil);
-    @_SEPIA2_SPM_GetFWVersion                := GetProcAddress (hdlDLL, 'SEPIA2_SPM_GetFWVersion');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_GetFWVersion <> nil);
-    @_SEPIA2_SPM_GetSensorData               := GetProcAddress (hdlDLL, 'SEPIA2_SPM_GetSensorData');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_GetSensorData <> nil);
-    @_SEPIA2_SPM_GetTemperatureAdjust        := GetProcAddress (hdlDLL, 'SEPIA2_SPM_GetTemperatureAdjust');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_GetTemperatureAdjust <> nil);
-    @_SEPIA2_SPM_GetStatusError              := GetProcAddress (hdlDLL, 'SEPIA2_SPM_GetStatusError');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_GetStatusError <> nil);
-    @_SEPIA2_SPM_UpdateFirmware              := GetProcAddress (hdlDLL, 'SEPIA2_SPM_UpdateFirmware');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_UpdateFirmware <> nil);
-    @_SEPIA2_SPM_SetFRAMWriteProtect         := GetProcAddress (hdlDLL, 'SEPIA2_SPM_SetFRAMWriteProtect');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_SetFRAMWriteProtect <> nil);
-    @_SEPIA2_SPM_GetFiberAmplifierFail       := GetProcAddress (hdlDLL, 'SEPIA2_SPM_GetFiberAmplifierFail');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_GetFiberAmplifierFail <> nil);
-    @_SEPIA2_SPM_ResetFiberAmplifierFail     := GetProcAddress (hdlDLL, 'SEPIA2_SPM_ResetFiberAmplifierFail');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_ResetFiberAmplifierFail <> nil);
-    @_SEPIA2_SPM_GetPumpPowerState           := GetProcAddress (hdlDLL, 'SEPIA2_SPM_GetPumpPowerState');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_GetPumpPowerState <> nil);
-    @_SEPIA2_SPM_SetPumpPowerState           := GetProcAddress (hdlDLL, 'SEPIA2_SPM_SetPumpPowerState');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_SetPumpPowerState <> nil);
-    @_SEPIA2_SPM_GetOperationTimers          := GetProcAddress (hdlDLL, 'SEPIA2_SPM_GetOperationTimers');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SPM_GetOperationTimers <> nil);
-    //
-    @_SEPIA2_SWS_DecodeModuleType            := GetProcAddress (hdlDLL, 'SEPIA2_SWS_DecodeModuleType');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_DecodeModuleType <> nil);
-    @_SEPIA2_SWS_DecodeModuleState           := GetProcAddress (hdlDLL, 'SEPIA2_SWS_DecodeModuleState');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_DecodeModuleState <> nil);
-    @_SEPIA2_SWS_GetModuleType               := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetModuleType');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetModuleType <> nil);
-    @_SEPIA2_SWS_GetStatusError              := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetStatusError');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetStatusError <> nil);
-    @_SEPIA2_SWS_GetParamRanges              := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetParamRanges');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetParamRanges <> nil);
-    @_SEPIA2_SWS_GetParameters               := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetParameters');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetParameters <> nil);
-    @_SEPIA2_SWS_SetParameters               := GetProcAddress (hdlDLL, 'SEPIA2_SWS_SetParameters');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_SetParameters <> nil);
-    @_SEPIA2_SWS_GetIntensity                := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetIntensity');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetIntensity <> nil);
-    @_SEPIA2_SWS_GetFWVersion                := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetFWVersion');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetFWVersion <> nil);
-    @_SEPIA2_SWS_UpdateFirmware              := GetProcAddress (hdlDLL, 'SEPIA2_SWS_UpdateFirmware');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_UpdateFirmware <> nil);
-    @_SEPIA2_SWS_SetFRAMWriteProtect         := GetProcAddress (hdlDLL, 'SEPIA2_SWS_SetFRAMWriteProtect');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_SetFRAMWriteProtect <> nil);
-    @_SEPIA2_SWS_GetBeamPos                  := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetBeamPos');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetBeamPos <> nil);
-    @_SEPIA2_SWS_SetBeamPos                  := GetProcAddress (hdlDLL, 'SEPIA2_SWS_SetBeamPos');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_SetBeamPos <> nil);
-    @_SEPIA2_SWS_SetCalibrationMode          := GetProcAddress (hdlDLL, 'SEPIA2_SWS_SetCalibrationMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_SetCalibrationMode <> nil);
-    @_SEPIA2_SWS_GetCalTableSize             := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetCalTableSize');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@SEPIA2_SWS_GetCalTableSize <> nil);
-    @_SEPIA2_SWS_GetCalPointInfo             := GetProcAddress (hdlDLL, 'SEPIA2_SWS_GetCalPointInfo');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_GetCalPointInfo <> nil);
-    @_SEPIA2_SWS_SetCalPointValues           := GetProcAddress (hdlDLL, 'SEPIA2_SWS_SetCalPointValues');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_SetCalPointValues <> nil);
-    @_SEPIA2_SWS_SetCalTableSize             := GetProcAddress (hdlDLL, 'SEPIA2_SWS_SetCalTableSize');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SWS_SetCalTableSize <> nil);
-    //
-    @_SEPIA2_SSM_DecodeFreqTrigMode          := GetProcAddress (hdlDLL, 'SEPIA2_SSM_DecodeFreqTrigMode');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SSM_DecodeFreqTrigMode <> nil);
-    @_SEPIA2_SSM_GetTrigLevelRange           := GetProcAddress (hdlDLL, 'SEPIA2_SSM_GetTrigLevelRange');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SSM_GetTrigLevelRange <> nil);
-    @_SEPIA2_SSM_GetTriggerData              := GetProcAddress (hdlDLL, 'SEPIA2_SSM_GetTriggerData');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SSM_GetTriggerData <> nil);
-    @_SEPIA2_SSM_SetTriggerData              := GetProcAddress (hdlDLL, 'SEPIA2_SSM_SetTriggerData');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SSM_SetTriggerData <> nil);
-    @_SEPIA2_SSM_GetFRAMWriteProtect         := GetProcAddress (hdlDLL, 'SEPIA2_SSM_GetFRAMWriteProtect');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SSM_GetFRAMWriteProtect <> nil);
-    @_SEPIA2_SSM_SetFRAMWriteProtect         := GetProcAddress (hdlDLL, 'SEPIA2_SSM_SetFRAMWriteProtect');
-    bSepia2ImportLibOK := bSepia2ImportLibOK and (@_SEPIA2_SSM_SetFRAMWriteProtect <> nil);
-    //
-    //
-    if bSepia2ImportLibOK
+    if hdlDLL = 0
     then begin
-      iRet := SEPIA2_LIB_GetVersion (strLibVersion);
-      if (iRet <> SEPIA2_ERR_NO_ERROR) or (0 > StrLComp(PChar(strLibVersion), PChar(LIB_VERSION_REFERENCE), LIB_VERSION_COMPLEN))
+      strReason := 'Library Sepia2_lib.dll not found!';
+      bSepia2ImportLibOK := false;
+      //
+      exit;
+    end
+    else begin
+      @_SEPIA2_LIB_GetVersion                  := GetDLLFunction('SEPIA2_LIB_GetVersion');
+      @_SEPIA2_LIB_GetLibUSBVersion            := GetDLLFunction('SEPIA2_LIB_GetLibUSBVersion',        @SUBST_LIB_GetLibUSBVersion);
+      @_SEPIA2_LIB_IsRunningOnWine             := GetDLLFunction('SEPIA2_LIB_IsRunningOnWine');
+      @_SEPIA2_LIB_DecodeError                 := GetDLLFunction('SEPIA2_LIB_DecodeError');
+      //
+      @_SEPIA2_USB_OpenDevice                  := GetDLLFunction('SEPIA2_USB_OpenDevice');
+      @_SEPIA2_USB_OpenGetSerNumAndClose       := GetDLLFunction('SEPIA2_USB_OpenGetSerNumAndClose');
+      @_SEPIA2_USB_CloseDevice                 := GetDLLFunction('SEPIA2_USB_CloseDevice');
+      @_SEPIA2_USB_GetStrDescriptor            := GetDLLFunction('SEPIA2_USB_GetStrDescriptor');
+      @_SEPIA2_USB_GetStrDescrByIdx            := GetDLLFunction('SEPIA2_USB_GetStrDescrByIdx',        @SUBST_USB_GetStrDescrByIdx);
+      @_SEPIA2_USB_IsOpenDevice                := GetDLLFunction('SEPIA2_USB_IsOpenDevice',            @SUBST_USB_IsOpenDevice);
+      //
+      @_SEPIA2_FWR_GetVersion                  := GetDLLFunction('SEPIA2_FWR_GetVersion');
+      @_SEPIA2_FWR_GetLastError                := GetDLLFunction('SEPIA2_FWR_GetLastError');
+      @_SEPIA2_FWR_DecodeErrPhaseName          := GetDLLFunction('SEPIA2_FWR_DecodeErrPhaseName');
+      @_SEPIA2_FWR_GetWorkingMode              := GetDLLFunction('SEPIA2_FWR_GetWorkingMode');
+      @_SEPIA2_FWR_SetWorkingMode              := GetDLLFunction('SEPIA2_FWR_SetWorkingMode');
+      @_SEPIA2_FWR_RollBackToPermanentValues   := GetDLLFunction('SEPIA2_FWR_RollBackToPermanentValues');
+      @_SEPIA2_FWR_StoreAsPermanentValues      := GetDLLFunction('SEPIA2_FWR_StoreAsPermanentValues');
+      @_SEPIA2_FWR_GetModuleMap                := GetDLLFunction('SEPIA2_FWR_GetModuleMap');
+      @_SEPIA2_FWR_GetModuleInfoByMapIdx       := GetDLLFunction('SEPIA2_FWR_GetModuleInfoByMapIdx');
+      @_SEPIA2_FWR_GetUptimeInfoByMapIdx       := GetDLLFunction('SEPIA2_FWR_GetUptimeInfoByMapIdx');
+      @_SEPIA2_FWR_CreateSupportRequestText    := GetDLLFunction('SEPIA2_FWR_CreateSupportRequestText');
+      @_SEPIA2_FWR_FreeModuleMap               := GetDLLFunction('SEPIA2_FWR_FreeModuleMap');
+      //
+      @_SEPIA2_COM_DecodeModuleType            := GetDLLFunction('SEPIA2_COM_DecodeModuleType');
+      @_SEPIA2_COM_DecodeModuleTypeAbbr        := GetDLLFunction('SEPIA2_COM_DecodeModuleTypeAbbr');
+      @_SEPIA2_COM_GetModuleType               := GetDLLFunction('SEPIA2_COM_GetModuleType');
+      @_SEPIA2_COM_GetSerialNumber             := GetDLLFunction('SEPIA2_COM_GetSerialNumber');
+      @_SEPIA2_COM_GetSupplementaryInfos       := GetDLLFunction('SEPIA2_COM_GetSupplementaryInfos');
+      @_SEPIA2_COM_HasSecondaryModule          := GetDLLFunction('SEPIA2_COM_HasSecondaryModule');
+      @_SEPIA2_COM_GetPresetInfo               := GetDLLFunction('SEPIA2_COM_GetPresetInfo');
+      @_SEPIA2_COM_RecallPreset                := GetDLLFunction('SEPIA2_COM_RecallPreset');
+      @_SEPIA2_COM_SaveAsPreset                := GetDLLFunction('SEPIA2_COM_SaveAsPreset');
+      @_SEPIA2_COM_IsWritableModule            := GetDLLFunction('SEPIA2_COM_IsWritableModule');
+      @_SEPIA2_COM_UpdateModuleData            := GetDLLFunction('SEPIA2_COM_UpdateModuleData');
+      //
+      @_SEPIA2_SCM_GetPowerAndLaserLEDS        := GetDLLFunction('SEPIA2_SCM_GetPowerAndLaserLEDS');
+      @_SEPIA2_SCM_GetLaserLocked              := GetDLLFunction('SEPIA2_SCM_GetLaserLocked');
+      @_SEPIA2_SCM_GetLaserSoftLock            := GetDLLFunction('SEPIA2_SCM_GetLaserSoftLock');
+      @_SEPIA2_SCM_SetLaserSoftLock            := GetDLLFunction('SEPIA2_SCM_SetLaserSoftLock');
+      //
+      @_SEPIA2_SLM_DecodeFreqTrigMode          := GetDLLFunction('SEPIA2_SLM_DecodeFreqTrigMode');
+      @_SEPIA2_SLM_DecodeHeadType              := GetDLLFunction('SEPIA2_SLM_DecodeHeadType');
+      //
+  {$ifdef __INCLUDE_DEPRECATED_SLM_FUNCTIONS__}
+      @_SEPIA2_SLM_GetParameters               := GetDLLFunction('SEPIA2_SLM_GetParameters');                                   // deprecated
+      // deprecated  : SEPIA2_SLM_GetParameters;
+      // use instead : SEPIA2_SLM_GetIntensityFineStep, SEPIA2_SLM_GetPulseParameters
+      @_SEPIA2_SLM_SetParameters               := GetDLLFunction('SEPIA2_SLM_SetParameters');                                   // deprecated
+      // deprecated  : SEPIA2_SLM_SetParameters;
+      // use instead : SEPIA2_SLM_SetIntensityFineStep, SEPIA2_SLM_SetPulseParameters
+  {$endif}
+      //
+      @_SEPIA2_SLM_GetIntensityFineStep        := GetDLLFunction('SEPIA2_SLM_GetIntensityFineStep');
+      @_SEPIA2_SLM_SetIntensityFineStep        := GetDLLFunction('SEPIA2_SLM_SetIntensityFineStep');
+      @_SEPIA2_SLM_GetPulseParameters          := GetDLLFunction('SEPIA2_SLM_GetPulseParameters');
+      @_SEPIA2_SLM_SetPulseParameters          := GetDLLFunction('SEPIA2_SLM_SetPulseParameters');
+      //
+      @_SEPIA2_SML_DecodeHeadType              := GetDLLFunction('SEPIA2_SML_DecodeHeadType');
+      @_SEPIA2_SML_GetParameters               := GetDLLFunction('SEPIA2_SML_GetParameters');
+      @_SEPIA2_SML_SetParameters               := GetDLLFunction('SEPIA2_SML_SetParameters');
+      //
+      @_SEPIA2_SOM_DecodeFreqTrigMode          := GetDLLFunction('SEPIA2_SOM_DecodeFreqTrigMode');
+      @_SEPIA2_SOM_GetFreqTrigMode             := GetDLLFunction('SEPIA2_SOM_GetFreqTrigMode');
+      @_SEPIA2_SOM_SetFreqTrigMode             := GetDLLFunction('SEPIA2_SOM_SetFreqTrigMode');
+      @_SEPIA2_SOM_GetTriggerRange             := GetDLLFunction('SEPIA2_SOM_GetTriggerRange');
+      @_SEPIA2_SOM_GetTriggerLevel             := GetDLLFunction('SEPIA2_SOM_GetTriggerLevel');
+      @_SEPIA2_SOM_SetTriggerLevel             := GetDLLFunction('SEPIA2_SOM_SetTriggerLevel');
+      @_SEPIA2_SOM_GetBurstValues              := GetDLLFunction('SEPIA2_SOM_GetBurstValues');
+      @_SEPIA2_SOM_SetBurstValues              := GetDLLFunction('SEPIA2_SOM_SetBurstValues');
+      @_SEPIA2_SOM_GetBurstLengthArray         := GetDLLFunction('SEPIA2_SOM_GetBurstLengthArray');
+      @_SEPIA2_SOM_SetBurstLengthArray         := GetDLLFunction('SEPIA2_SOM_SetBurstLengthArray');
+      @_SEPIA2_SOM_GetOutNSyncEnable           := GetDLLFunction('SEPIA2_SOM_GetOutNSyncEnable');
+      @_SEPIA2_SOM_SetOutNSyncEnable           := GetDLLFunction('SEPIA2_SOM_SetOutNSyncEnable');
+      @_SEPIA2_SOM_DecodeAUXINSequencerCtrl    := GetDLLFunction('SEPIA2_SOM_DecodeAUXINSequencerCtrl');
+      @_SEPIA2_SOM_GetAUXIOSequencerCtrl       := GetDLLFunction('SEPIA2_SOM_GetAUXIOSequencerCtrl');
+      @_SEPIA2_SOM_SetAUXIOSequencerCtrl       := GetDLLFunction('SEPIA2_SOM_SetAUXIOSequencerCtrl');
+      //
+      @_SEPIA2_SOMD_DecodeFreqTrigMode         := GetDLLFunction('SEPIA2_SOMD_DecodeFreqTrigMode');
+      @_SEPIA2_SOMD_GetFreqTrigMode            := GetDLLFunction('SEPIA2_SOMD_GetFreqTrigMode');
+      @_SEPIA2_SOMD_SetFreqTrigMode            := GetDLLFunction('SEPIA2_SOMD_SetFreqTrigMode');
+      @_SEPIA2_SOMD_GetTriggerRange            := GetDLLFunction('SEPIA2_SOMD_GetTriggerRange');
+      @_SEPIA2_SOMD_GetTriggerLevel            := GetDLLFunction('SEPIA2_SOMD_GetTriggerLevel');
+      @_SEPIA2_SOMD_SetTriggerLevel            := GetDLLFunction('SEPIA2_SOMD_SetTriggerLevel');
+      @_SEPIA2_SOMD_GetBurstValues             := GetDLLFunction('SEPIA2_SOMD_GetBurstValues');
+      @_SEPIA2_SOMD_SetBurstValues             := GetDLLFunction('SEPIA2_SOMD_SetBurstValues');
+      @_SEPIA2_SOMD_GetBurstLengthArray        := GetDLLFunction('SEPIA2_SOMD_GetBurstLengthArray');
+      @_SEPIA2_SOMD_SetBurstLengthArray        := GetDLLFunction('SEPIA2_SOMD_SetBurstLengthArray');
+      @_SEPIA2_SOMD_GetOutNSyncEnable          := GetDLLFunction('SEPIA2_SOMD_GetOutNSyncEnable');
+      @_SEPIA2_SOMD_SetOutNSyncEnable          := GetDLLFunction('SEPIA2_SOMD_SetOutNSyncEnable');
+      @_SEPIA2_SOMD_DecodeAUXINSequencerCtrl   := GetDLLFunction('SEPIA2_SOMD_DecodeAUXINSequencerCtrl');
+      @_SEPIA2_SOMD_GetAUXIOSequencerCtrl      := GetDLLFunction('SEPIA2_SOMD_GetAUXIOSequencerCtrl');
+      @_SEPIA2_SOMD_SetAUXIOSequencerCtrl      := GetDLLFunction('SEPIA2_SOMD_SetAUXIOSequencerCtrl');
+      @_SEPIA2_SOMD_GetSeqOutputInfos          := GetDLLFunction('SEPIA2_SOMD_GetSeqOutputInfos');
+      @_SEPIA2_SOMD_SetSeqOutputInfos          := GetDLLFunction('SEPIA2_SOMD_SetSeqOutputInfos');
+      //
+      @_SEPIA2_SOMD_SynchronizeNow             := GetDLLFunction('SEPIA2_SOMD_SynchronizeNow');
+      @_SEPIA2_SOMD_DecodeModuleState          := GetDLLFunction('SEPIA2_SOMD_DecodeModuleState');
+      @_SEPIA2_SOMD_GetStatusError             := GetDLLFunction('SEPIA2_SOMD_GetStatusError');
+      @_SEPIA2_SOMD_GetTrigSyncFreq            := GetDLLFunction('SEPIA2_SOMD_GetTrigSyncFreq');
+      @_SEPIA2_SOMD_GetDelayUnits              := GetDLLFunction('SEPIA2_SOMD_GetDelayUnits');
+      @_SEPIA2_SOMD_GetFWVersion               := GetDLLFunction('SEPIA2_SOMD_GetFWVersion');
+      @_SEPIA2_SOMD_FWReadPage                 := GetDLLFunction('SEPIA2_SOMD_FWReadPage');
+      @_SEPIA2_SOMD_FWWritePage                := GetDLLFunction('SEPIA2_SOMD_FWWritePage');
+      @_SEPIA2_SOMD_GetHWParams                := GetDLLFunction('SEPIA2_SOMD_GetHWParams');
+      //
+      @_SEPIA2_SWM_DecodeRangeIdx              := GetDLLFunction('SEPIA2_SWM_DecodeRangeIdx');
+      @_SEPIA2_SWM_GetUIConstants              := GetDLLFunction('SEPIA2_SWM_GetUIConstants');
+      @_SEPIA2_SWM_GetCurveParams              := GetDLLFunction('SEPIA2_SWM_GetCurveParams');
+      @_SEPIA2_SWM_SetCurveParams              := GetDLLFunction('SEPIA2_SWM_SetCurveParams');
+      @_SEPIA2_SWM_GetExtAtten                 := GetDLLFunction('SEPIA2_SWM_GetExtAtten');
+      @_SEPIA2_SWM_SetExtAtten                 := GetDLLFunction('SEPIA2_SWM_SetExtAtten');
+      //
+      @_SEPIA2_VCL_GetUIConstants              := GetDLLFunction('SEPIA2_VCL_GetUIConstants');
+      @_SEPIA2_VCL_GetTemperature              := GetDLLFunction('SEPIA2_VCL_GetTemperature');
+      @_SEPIA2_VCL_SetTemperature              := GetDLLFunction('SEPIA2_VCL_SetTemperature');
+      @_SEPIA2_VCL_GetBiasVoltage              := GetDLLFunction('SEPIA2_VCL_GetBiasVoltage');
+      //
+      @_SEPIA2_SPM_DecodeModuleState           := GetDLLFunction('SEPIA2_SPM_DecodeModuleState');
+      @_SEPIA2_SPM_GetDeviceDescription        := GetDLLFunction('SEPIA2_SPM_GetDeviceDescription');
+      @_SEPIA2_SPM_GetFWVersion                := GetDLLFunction('SEPIA2_SPM_GetFWVersion');
+      @_SEPIA2_SPM_GetSensorData               := GetDLLFunction('SEPIA2_SPM_GetSensorData');
+      @_SEPIA2_SPM_GetTemperatureAdjust        := GetDLLFunction('SEPIA2_SPM_GetTemperatureAdjust');
+      @_SEPIA2_SPM_GetStatusError              := GetDLLFunction('SEPIA2_SPM_GetStatusError');
+      @_SEPIA2_SPM_UpdateFirmware              := GetDLLFunction('SEPIA2_SPM_UpdateFirmware');
+      @_SEPIA2_SPM_SetFRAMWriteProtect         := GetDLLFunction('SEPIA2_SPM_SetFRAMWriteProtect');
+      @_SEPIA2_SPM_GetFiberAmplifierFail       := GetDLLFunction('SEPIA2_SPM_GetFiberAmplifierFail');
+      @_SEPIA2_SPM_ResetFiberAmplifierFail     := GetDLLFunction('SEPIA2_SPM_ResetFiberAmplifierFail');
+      @_SEPIA2_SPM_GetPumpPowerState           := GetDLLFunction('SEPIA2_SPM_GetPumpPowerState');
+      @_SEPIA2_SPM_SetPumpPowerState           := GetDLLFunction('SEPIA2_SPM_SetPumpPowerState');
+      @_SEPIA2_SPM_GetOperationTimers          := GetDLLFunction('SEPIA2_SPM_GetOperationTimers');
+      //
+      @_SEPIA2_SWS_DecodeModuleType            := GetDLLFunction('SEPIA2_SWS_DecodeModuleType');
+      @_SEPIA2_SWS_DecodeModuleState           := GetDLLFunction('SEPIA2_SWS_DecodeModuleState');
+      @_SEPIA2_SWS_GetModuleType               := GetDLLFunction('SEPIA2_SWS_GetModuleType');
+      @_SEPIA2_SWS_GetStatusError              := GetDLLFunction('SEPIA2_SWS_GetStatusError');
+      @_SEPIA2_SWS_GetParamRanges              := GetDLLFunction('SEPIA2_SWS_GetParamRanges');
+      @_SEPIA2_SWS_GetParameters               := GetDLLFunction('SEPIA2_SWS_GetParameters');
+      @_SEPIA2_SWS_SetParameters               := GetDLLFunction('SEPIA2_SWS_SetParameters');
+      @_SEPIA2_SWS_GetIntensity                := GetDLLFunction('SEPIA2_SWS_GetIntensity');
+      @_SEPIA2_SWS_GetFWVersion                := GetDLLFunction('SEPIA2_SWS_GetFWVersion');
+      @_SEPIA2_SWS_UpdateFirmware              := GetDLLFunction('SEPIA2_SWS_UpdateFirmware');
+      @_SEPIA2_SWS_SetFRAMWriteProtect         := GetDLLFunction('SEPIA2_SWS_SetFRAMWriteProtect');
+      @_SEPIA2_SWS_GetBeamPos                  := GetDLLFunction('SEPIA2_SWS_GetBeamPos');
+      @_SEPIA2_SWS_SetBeamPos                  := GetDLLFunction('SEPIA2_SWS_SetBeamPos');
+      @_SEPIA2_SWS_SetCalibrationMode          := GetDLLFunction('SEPIA2_SWS_SetCalibrationMode');
+      @_SEPIA2_SWS_GetCalTableSize             := GetDLLFunction('SEPIA2_SWS_GetCalTableSize');
+      @_SEPIA2_SWS_SetCalTableSize             := GetDLLFunction('SEPIA2_SWS_SetCalTableSize');
+      @_SEPIA2_SWS_GetCalPointInfo             := GetDLLFunction('SEPIA2_SWS_GetCalPointInfo');
+      @_SEPIA2_SWS_SetCalPointValues           := GetDLLFunction('SEPIA2_SWS_SetCalPointValues');
+      //
+      @_SEPIA2_SSM_DecodeFreqTrigMode          := GetDLLFunction('SEPIA2_SSM_DecodeFreqTrigMode');
+      @_SEPIA2_SSM_GetTrigLevelRange           := GetDLLFunction('SEPIA2_SSM_GetTrigLevelRange');
+      @_SEPIA2_SSM_GetTriggerData              := GetDLLFunction('SEPIA2_SSM_GetTriggerData');
+      @_SEPIA2_SSM_SetTriggerData              := GetDLLFunction('SEPIA2_SSM_SetTriggerData');
+      @_SEPIA2_SSM_GetFRAMWriteProtect         := GetDLLFunction('SEPIA2_SSM_GetFRAMWriteProtect');
+      @_SEPIA2_SSM_SetFRAMWriteProtect         := GetDLLFunction('SEPIA2_SSM_SetFRAMWriteProtect');
+      //
+      @_SEPIA2_VUV_VIR_GetDeviceType           := GetDLLFunction('SEPIA2_VUV_VIR_GetDeviceType');
+      @_SEPIA2_VUV_VIR_DecodeFreqTrigMode      := GetDLLFunction('SEPIA2_VUV_VIR_DecodeFreqTrigMode');
+      @_SEPIA2_VUV_VIR_GetTrigLevelRange       := GetDLLFunction('SEPIA2_VUV_VIR_GetTrigLevelRange');
+      @_SEPIA2_VUV_VIR_GetTriggerData          := GetDLLFunction('SEPIA2_VUV_VIR_GetTriggerData');
+      @_SEPIA2_VUV_VIR_SetTriggerData          := GetDLLFunction('SEPIA2_VUV_VIR_SetTriggerData');
+      @_SEPIA2_VUV_VIR_GetIntensityRange       := GetDLLFunction('SEPIA2_VUV_VIR_GetIntensityRange');
+      @_SEPIA2_VUV_VIR_GetIntensity            := GetDLLFunction('SEPIA2_VUV_VIR_GetIntensity');
+      @_SEPIA2_VUV_VIR_SetIntensity            := GetDLLFunction('SEPIA2_VUV_VIR_SetIntensity');
+      @_SEPIA2_VUV_VIR_GetFan                  := GetDLLFunction('SEPIA2_VUV_VIR_GetFan');
+      @_SEPIA2_VUV_VIR_SetFan                  := GetDLLFunction('SEPIA2_VUV_VIR_SetFan');
+      //
+      @_SEPIA2_PRI_GetDeviceInfo               := GetDLLFunction('SEPIA2_PRI_GetDeviceInfo');
+      @_SEPIA2_PRI_DecodeOperationMode         := GetDLLFunction('SEPIA2_PRI_DecodeOperationMode');
+      @_SEPIA2_PRI_GetOperationMode            := GetDLLFunction('SEPIA2_PRI_GetOperationMode');
+      @_SEPIA2_PRI_SetOperationMode            := GetDLLFunction('SEPIA2_PRI_SetOperationMode');
+      @_SEPIA2_PRI_DecodeWavelength            := GetDLLFunction('SEPIA2_PRI_DecodeWavelength');
+      @_SEPIA2_PRI_GetWavelengthIdx            := GetDLLFunction('SEPIA2_PRI_GetWavelengthIdx');
+      @_SEPIA2_PRI_SetWavelengthIdx            := GetDLLFunction('SEPIA2_PRI_SetWavelengthIdx');
+      @_SEPIA2_PRI_GetIntensity                := GetDLLFunction('SEPIA2_PRI_GetIntensity');
+      @_SEPIA2_PRI_SetIntensity                := GetDLLFunction('SEPIA2_PRI_SetIntensity');
+      @_SEPIA2_PRI_GetFrequencyLimits          := GetDLLFunction('SEPIA2_PRI_GetFrequencyLimits');
+      @_SEPIA2_PRI_GetFrequency                := GetDLLFunction('SEPIA2_PRI_GetFrequency');
+      @_SEPIA2_PRI_SetFrequency                := GetDLLFunction('SEPIA2_PRI_SetFrequency');
+      @_SEPIA2_PRI_DecodeTriggerSource         := GetDLLFunction('SEPIA2_PRI_DecodeTriggerSource');
+      @_SEPIA2_PRI_GetTriggerSource            := GetDLLFunction('SEPIA2_PRI_GetTriggerSource');
+      @_SEPIA2_PRI_SetTriggerSource            := GetDLLFunction('SEPIA2_PRI_SetTriggerSource');
+      @_SEPIA2_PRI_GetTriggerLevelLimits       := GetDLLFunction('SEPIA2_PRI_GetTriggerLevelLimits');
+      @_SEPIA2_PRI_GetTriggerLevel             := GetDLLFunction('SEPIA2_PRI_GetTriggerLevel');
+      @_SEPIA2_PRI_SetTriggerLevel             := GetDLLFunction('SEPIA2_PRI_SetTriggerLevel');
+      @_SEPIA2_PRI_GetGatingLimits             := GetDLLFunction('SEPIA2_PRI_GetGatingLimits');
+      @_SEPIA2_PRI_GetGatingData               := GetDLLFunction('SEPIA2_PRI_GetGatingData');
+      @_SEPIA2_PRI_SetGatingData               := GetDLLFunction('SEPIA2_PRI_SetGatingData');
+      @_SEPIA2_PRI_GetGatingEnabled            := GetDLLFunction('SEPIA2_PRI_GetGatingEnabled');
+      @_SEPIA2_PRI_SetGatingEnabled            := GetDLLFunction('SEPIA2_PRI_SetGatingEnabled');
+      @_SEPIA2_PRI_GetGateHighImpedance        := GetDLLFunction('SEPIA2_PRI_GetGateHighImpedance');
+      @_SEPIA2_PRI_SetGateHighImpedance        := GetDLLFunction('SEPIA2_PRI_SetGateHighImpedance');
+      //
+      strCount  := RightStr ('   ' + IntToStr(iDLLFuncsCount), 3);
+      strReason := '*  Error after ' + strCount + ' DLL-functions!  *';
+      //
+      //
+      if bSepia2ImportLibOK
       then begin
-        //writeln ('Library Sepia2_lib.dll not up-to-date!');
-        bSepia2ImportLibOK := false;
+        iRet := SEPIA2_LIB_GetVersion (strLibVersion);
+        if (iRet <> SEPIA2_ERR_NO_ERROR)
+          or ( (0 > StrLComp(PChar(strLibVersion), PChar(LIB_VERSION_REFERENCE), LIB_VERSION_COMPLEN))
+           and (0 > StrLComp(PChar(strLibVersion), PChar(LIB_VERSION_REFERENCE_OLD), LIB_VERSION_COMPLEN))
+             )
+        then begin
+          strReason := 'Library Sepia2_lib.dll not up-to-date!';
+          bSepia2ImportLibOK := false;
+        end;
+        //
+        iRet := SEPIA2_LIB_GetLibUSBVersion (strLibUSBVersion);
+        if (iRet <> SEPIA2_ERR_NO_ERROR)
+        then begin
+          strReason := 'USB-wrapper SVN-version unknown!';
+          bSepia2ImportLibOK := false;
+        end;
+        //
+        if bSepia2ImportLibOK
+        then begin
+          if (0 > StrLComp(PChar(strLibVersion), PChar(LIB_VERSION_REFERENCE_OLD), LIB_VERSION_COMPLEN))
+          then begin
+            OutputDebugString(PChar('   ********************************************************   '));
+            OutputDebugString(PChar('   *   Warning:  Library Sepia2_lib.dll not up-to-date!   *   '));
+            OutputDebugString(PChar('   ********************************************************   '));
+          end;
+        end;
       end;
     end;
+
+  finally
+
+    if not bSepia2ImportLibOK
+    then begin
+      OutputDebugString(PChar('   *************************************   '));
+      OutputDebugString(PChar('   *  Error on Import Sepia2 Library!  *   '));
+      OutputDebugString(PChar('   *************************************   '));
+      OutputDebugString(PChar('   ' + strReason + '   '));
+    end;
+
   end;
 
 finalization
   FreeLibrary (hdlDLL);
   FreeMem (pcTmpLongVal2);
   FreeMem (pcTmpLongVal1);
+  FreeMem (pcTmpVal3);
   FreeMem (pcTmpVal2);
   FreeMem (pcTmpVal1);
 end.

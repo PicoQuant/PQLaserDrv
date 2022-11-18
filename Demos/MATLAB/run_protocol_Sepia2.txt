@@ -1,0 +1,1000 @@
+>> MATLAB_Sepia2_Lib_Demo
+SEPIA2_LIB_GetVersion ran OK:
+   Library Version = "1.2.64.767"
+   For support cases, please always mention the LIB version number
+
+SEPIA2_USB_OpenGetSerNumAndClose (0) ran OK:
+   Product="Sepia II", S/N="2020-001"
+
+From now on, we take iDevIdx = 0  as USB index for our PQ-LaserDevice!
+
+SEPIA2_USB_OpenDevice ran OK:
+   Product="Sepia II", S/N="2020-001"
+
+SEPIA2_USB_GetStrDescriptor ran OK:
+   cStringDescr = "PicoQuant, Sepia II, Build 0624, 2020-001"
+
+SEPIA2_FWR_GetVersion ran OK:
+   Firmware Version = "2.01.624"
+   For support cases, please always mention the FWR version number
+
+SEPIA2_FWR_GetLastError ran OK:
+   Last firmware boot was error-free!
+   For support cases, please mention, that the  "Last Error"  block was clear!
+
+SEPIA2_FWR_GetModuleMap ran OK:
+   iModuleCount = 4
+
+We don't handle the FRML backplane carrying slot 000
+
+There is a SCM module in slot 000:
+   Serial No.   = "2020-001"
+   Label        = "SCM-828 "
+   Release Date = "19/11/11"
+   Revision     = "0.9"
+   Header Memo  = | SCM
+                  | Sepia2020
+
+There is a SOMD module in slot 100:
+   Serial No.   = "1046632"
+   Label        = "SOM-828D"
+   Release Date = "22/07/18"
+   Revision     = "2"
+   Header Memo  = | SOM-828-D Oscillator Module
+                  | PQ.060.3200.0102
+
+There is a SLM module in slot 200:
+   Serial No.   = "1018644"
+   Label        = "SLM-828 "
+   Release Date = "12/11/16"
+   Revision     = "Rev. ???"
+   Header Memo  = | SLM 828 Laser Driver Module
+                  | PQ.060.5200.0005
+
+SCM (slot 000) state:
+
+   Power LED        is on 
+   Laser Active LED is on 
+
+   Lasers are hard locked
+
+SOMD (slot 100) state:
+   Trigger Mode  : 50.00 MHz (int. C)
+   Synchronized  : off
+   Trigger Range : -1200 mV <= Trigger Level <= 1200 mV
+   Trigger Level :     0 mV
+   Base Divider  :    10
+   Pre-Sync      :     0
+   Sync Mask     :     0;   (mask is working normal)
+   AUX Output    : enabled
+   Sequencer     : disabled
+   Line 1        : Burst Length =    10000;   Sync  enabled;   Output  enabled;  Outputs burst 1
+   Line 2        : Burst Length =     5000;   Sync disabled;   Output  enabled;  Outputs burst 2
+   Line 3        : Burst Length =     4999;   Sync  enabled;   Output disabled;  Outputs burst 3
+   Line 4        : Burst Length =        1;   Sync disabled;   Output disabled;  Outputs burst 4
+   Line 5        : Burst Length =        0;   Sync disabled;   Output  enabled;  Combining bursts 3, 4
+   Line 6        : Burst Length =        0;   Sync disabled;   Output disabled;  Outputs burst 4
+   Line 7        : Burst Length =        0;   Sync disabled;   Output disabled;  Outputs burst 4
+   Line 8        : Burst Length =        0;   Sync disabled;   Output  enabled;  Outputs burst 4
+
+SLM 1 (slot 200) state:
+
+   Trigger Mode  :  2.5 MHz (int.)
+   Pulse Mode    : enabled
+   Head Type     : none
+   Intensity     :  23.0 %
+
+No VisUV / VisIR devices found!
+
+No Prima devices found!
+
+%-----------------------------------------------------------------------------
+
+These infos (in the freshest state) are to be sent
+to support@PicoQuant.com in case of a support request.
+
+<snip>
+
+*********************************************************************
+***                                                               ***
+***                        Service Request                        ***
+***                     launched by a call to                     ***
+***                   PicoQuant Laserdriver DLL                   ***
+***                                                               ***
+***               Created: 2022-11-03; 10:25:44.895               ***
+***                                                               ***
+*********************************************************************
+
+Comprehensive System Info:
+==========================
+
+Calling Software:
+-----------------
+
+  * MATLAB Demo
+
+  * DLL:            Sepia2_Lib.dll
+    Vers/USB-Lib:   1.2.64.767/336
+
+
+List of PicoQuant Laser Devices:
+--------------------------------
+
+ +---------+---------------+------------+------------------------------+
+ | USB-Idx | Product/Model | Serial No. | State                        |
+ +---------+---------------+------------+------------------------------+
+ |    0    | Sepia II      | 2020-001   | current device (open)        |
+ +---------+---------------+------------+------------------------------+
+
+
+PicoQuant Laser Device:
+-----------------------
+
+  * Sepia II
+    SerNo.:         2020-001
+    FW-Version:     2.01.624
+    Working Mode:   "stay permanent"
+    Frametype:      Large Frame
+    Last FW Error:  0 (no error)
+
+    USB Descriptor: "PicoQuant, Sepia II, Build 0624, 2020-001"
+    USB Dev.-Inst.: 0
+
+
+  Installed Modules:
+  ------------------
+
+  * Backplane:
+    Format Vers.:   1.05
+    Type:           FRML
+    SerNo.:         2020-001
+    Label:          PDL 828
+    Release:        20/01/05
+    Revision:       0105
+    Memo:           |  PDL 828 Rahmen
+                    |  Sepia2020
+    UT_1:           0x001920C7
+    UT_2:           0x000D7B55
+
+  * Slot 000:
+    Format Vers.:   1.05
+    Type:           SCM
+    SerNo.:         2020-001
+    Label:          SCM-828
+    Release:        19/11/11
+    Revision:       0.9
+    Memo:           |  SCM
+                    |  Sepia2020
+    Temperature:    35.5°C  =  95.9°F
+    Int. Voltages:                        min.      cur.      max.
+      line 0               (+5V PG):     0.00V     0.24V     1.00V
+      line 1               (-5V PG):     0.00V     0.24V     1.00V
+      line 2               (+5V PG):     0.00V     0.24V     1.00V
+      line 3               (-5V PG):     0.00V     0.24V     1.00V
+      line 4                (AC PG):     0.00V     0.00V     1.00V
+      line 5             (+28V Bus):     1.00V     5.13V     5.62V
+      line 6          (FX2 SHUTDWN):     1.00V     5.06V    10.00V
+      line 7         (nicht belegt):     0.00V     0.00V    10.00V
+
+  * Slot 100:
+    Format Vers.:   1.05
+    Type:           SOMD
+    SerNo.:         1046632
+    Label:          SOM-828D
+    Release:        22/07/18
+    Revision:       2
+    Memo:           |  SOM-828-D Oscillator Module
+                    |  PQ.060.3200.0102
+    SOMD-State:     "FRAM write-protected"
+    FW Build-Info:  1.0.11
+    HW Descriptor:
+      with PCB:     1.2
+      initial FW:   1.0
+      calibr.table: 1.0
+      from file:    "som828d_pcb0102_fw0100_0011.bit"
+      dated:        2020/10/23_12:03:48.000
+      length:       2192119 bytes
+      burned:       2022/07/18_10:49:59.000
+      by:           PQ.jacobshagen
+    Calibr. Table:
+      table vers.:  1.0
+                    04 04 03 00 03 04 04 03 03 03 03 
+                    02 01 01 00 00 01 01 01 01 01 01 
+                    FF FF FF 00 FE FF FF FF FF FF FF 
+    FW Descriptor:
+      for PCB:      1.2
+      current FW:   1.0
+      from file:    "som828d_pcb0102_fw0100_0011.bit"
+      dated:        2020/10/23_12:03:48.000
+      length:       2192119 bytes
+      burned:       2022/07/18_10:49:59.000
+      by:           PQ.jacobshagen
+    HW Parameters:
+      Temperature 1: 46.0°C  = 114.8°F
+      Temperature 2: 41.0°C  = 105.8°F
+      Temperature 3: 65.0°C  = 149.0°F
+      Voltage     1:      1.82 V
+      Voltage     2:      1.01 V
+      Voltage     3:      2.50 V
+      Voltage     4:      3.30 V
+      AUX          :  45054
+
+  * Slot 200:
+    Format Vers.:   1.05
+    Type:           SLM
+    SerNo.:         1018644
+    Label:          SLM-828
+    Release:        12/11/16
+    Revision:       Rev. ???
+    Memo:           |  SLM 828 Laser Driver Module
+                    |  PQ.060.5200.0005
+
+
+Computer:
+---------
+
+  Processor(s):
+  -------------
+
+    1 CPU(s), 14(28) Core(s),  GenuineIntel, Family: 6, Model: 63, Stepping: 2
+    Intel(R) Xeon(R) CPU E5-2697 v3 @ 2.60GHz
+
+  Memory:
+  -------
+
+    +------------+---------------+---------------+
+    |    [KByte] | Avail:        | Total:        |
+    +------------+---------------+---------------+
+    | Physical:  |      62134800 |      67028228 |
+    | Page File: |      70689372 |      76989700 |
+    | Virtual:   |  137423161672 |  137438953344 |
+    +------------+---------------+---------------+
+
+
+  Operating System:
+  -----------------
+
+    Software is running on a 64-bit OS
+    OS Version:    10.0.19041
+
+
+  Software Modules Running:
+  -------------------------
+
+    +-----------------------------------------------------+-----------------------+
+    |  SW-Module Name                                     |  Version              |
+    +-----------------------------------------------------+-----------------------+
+    |  matlab.exe                                         |  9.7.0.0              |
+    |  ntdll.dll                                          |  6.2.19041.1949       |
+    |  kernel32.dll                                       |  6.2.19041.1889       |
+    |  kernelbase.dll                                     |  6.2.19041.1949       |
+    |  apphelp.dll                                        |  6.2.19041.1320       |
+    |  ucrtbase.dll                                       |  6.2.19041.789        |
+    |  libmwi18n.dll                                      |  ???                  |
+    |  mvm.dll                                            |  ???                  |
+    |  advapi32.dll                                       |  6.2.19041.1682       |
+    |  ws2_32.dll                                         |  6.2.19041.546        |
+    |  mwboost_system-vc141-mt-1_65_1.dll                 |  ???                  |
+    |  msvcrt.dll                                         |  7.0.19041.546        |
+    |  rpcrt4.dll                                         |  6.2.19041.1806       |
+    |  sechost.dll                                        |  6.2.19041.1865       |
+    |  vcruntime140.dll                                   |  14.15.26706.0        |
+    |  libmwresource_core.dll                             |  ???                  |
+    |  msvcp140.dll                                       |  14.15.26706.0        |
+    |  libmwcpp11compat.dll                               |  ???                  |
+    |  libmwms.dll                                        |  ???                  |
+    |  mwboost_filesystem-vc141-mt-1_65_1.dll             |  ???                  |
+    |  mwboost_date_time-vc141-mt-1_65_1.dll              |  ???                  |
+    |  mwboost_thread-vc141-mt-1_65_1.dll                 |  ???                  |
+    |  libut.dll                                          |  ???                  |
+    |  user32.dll                                         |  6.2.19041.1503       |
+    |  win32u.dll                                         |  6.2.19041.2006       |
+    |  gdi32.dll                                          |  6.2.19041.1620       |
+    |  gdi32full.dll                                      |  6.2.19041.2006       |
+    |  msvcp_win.dll                                      |  6.2.19041.789        |
+    |  ole32.dll                                          |  6.2.19041.1202       |
+    |  combase.dll                                        |  6.2.19041.1949       |
+    |  LIBEXPAT.dll                                       |  ???                  |
+    |  oleaut32.dll                                       |  6.2.19041.985        |
+    |  icuin61.dll                                        |  61.1.0.0             |
+    |  mpr.dll                                            |  6.2.19041.1806       |
+    |  icuuc61.dll                                        |  61.1.0.0             |
+    |  mwboost_log-vc141-mt-1_65_1.dll                    |  ???                  |
+    |  mwboost_chrono-vc141-mt-1_65_1.dll                 |  ???                  |
+    |  mwboost_serialization-vc141-mt-1_65_1.dll          |  ???                  |
+    |  psapi.dll                                          |  6.2.19041.546        |
+    |  tbb.dll                                            |  2017.0.2017.118      |
+    |  icuio61.dll                                        |  61.1.0.0             |
+    |  dbghelp.dll                                        |  6.2.19041.867        |
+    |  secur32.dll                                        |  6.2.19041.546        |
+    |  sspicli.dll                                        |  6.2.19041.1586       |
+    |  libmwservices.dll                                  |  1.0.0.1              |
+    |  shell32.dll                                        |  6.2.19041.1949       |
+    |  libmwmst.dll                                       |  ???                  |
+    |  libmwcapabilities.dll                              |  ???                  |
+    |  libmx.dll                                          |  ???                  |
+    |  libmwfl.dll                                        |  ???                  |
+    |  mlutil.dll                                         |  ???                  |
+    |  libmwfoundation_matlabdata.dll                     |  ???                  |
+    |  libmwfoundation_usm.dll                            |  ???                  |
+    |  libmwstartupplugin.dll                             |  ???                  |
+    |  execution_events.dll                               |  ???                  |
+    |  libmwstartup_plugin_initializer.dll                |  ???                  |
+    |  libmvmtransportapi.dll                             |  ???                  |
+    |  icudt61.dll                                        |  61.1.0.0             |
+    |  matlab_toolbox_events.dll                          |  ???                  |
+    |  opcmodel.dll                                       |  ???                  |
+    |  mwboost_iostreams-vc141-mt-1_65_1.dll              |  ???                  |
+    |  mswsock.dll                                        |  6.2.19041.546        |
+    |  tbbmalloc.dll                                      |  2017.0.2017.118      |
+    |  zlib1.dll                                          |  1.2.11.0             |
+    |  powrprof.dll                                       |  6.2.19041.546        |
+    |  mwboost_regex-vc141-mt-1_65_1.dll                  |  ???                  |
+    |  libmwlivecode.dll                                  |  ???                  |
+    |  libmwregexp.dll                                    |  ???                  |
+    |  libmwcppmicroservices.dll                          |  ???                  |
+    |  libmwflstoragevfs.dll                              |  ???                  |
+    |  libmwcwf_interface.dll                             |  ???                  |
+    |  libmwsearch_path_utilities.dll                     |  ???                  |
+    |  wintrust.dll                                       |  6.2.19041.1949       |
+    |  libmwflstorageprovider.dll                         |  ???                  |
+    |  libmwmatlabstoragesystem.dll                       |  ???                  |
+    |  crypt32.dll                                        |  6.2.19041.1889       |
+    |  settingscore.dll                                   |  ???                  |
+    |  libmwrelease_info.dll                              |  ???                  |
+    |  libmwflstorageutility.dll                          |  ???                  |
+    |  opccore.dll                                        |  ???                  |
+    |  opczippackage.dll                                  |  ???                  |
+    |  string_matrix.dll                                  |  ???                  |
+    |  CppMicroServices3.dll                              |  ???                  |
+    |  libmwmfl_permute.dll                               |  ???                  |
+    |  libmwmsr.dll                                       |  ???                  |
+    |  libmwindexingapimethods.dll                        |  ???                  |
+    |  libmwfoundation_json.dll                           |  ???                  |
+    |  libmwmatlabdata_boost_serialization.dll            |  ???                  |
+    |  libmwflnetwork.dll                                 |  ???                  |
+    |  shlwapi.dll                                        |  6.2.19041.1706       |
+    |  libmwflcryptoutils.dll                             |  ???                  |
+    |  libmwflcrypto.dll                                  |  ???                  |
+    |  libmwflcryptocryptopp.dll                          |  ???                  |
+    |  xerces-c_3_2.dll                                   |  3.2.2.0              |
+    |  libmwflcertificates.dll                            |  ???                  |
+    |  opcmwservices.dll                                  |  ???                  |
+    |  mwboost_program_options-vc141-mt-1_65_1.dll        |  ???                  |
+    |  xmlcore.dll                                        |  ???                  |
+    |  libminizip.dll                                     |  ???                  |
+    |  libssl-1_1-x64.dll                                 |  1.1.1.4              |
+    |  libcrypto-1_1-x64.dll                              |  1.1.1.4              |
+    |  bcrypt.dll                                         |  6.2.19041.1023       |
+    |  libmwsearch_path_interfaces.dll                    |  ???                  |
+    |  libmwstoragefilefolderobserver.dll                 |  ???                  |
+    |  libmwflstorageevents.dll                           |  ???                  |
+    |  libmwfoundation_matlabdata_json.dll                |  ???                  |
+    |  libmwfoundation_matlabdata_standalone.dll          |  ???                  |
+    |  mcos.dll                                           |  ???                  |
+    |  libmwsearch_path_events.dll                        |  ???                  |
+    |  libmwnativedialogs.dll                             |  ???                  |
+    |  libmwdtoa.dll                                      |  ???                  |
+    |  libmwfoundation_matlabjson_frontend.dll            |  ???                  |
+    |  UMPDC.dll                                          |  ???                  |
+    |  imm32.dll                                          |  6.2.19041.546        |
+    |  msasn1.dll                                         |  6.2.19041.546        |
+    |  mwServiceComponentImpl.dll                         |  ???                  |
+    |  libmwServiceComponent.dll                          |  ???                  |
+    |  libmwLogService.dll                                |  ???                  |
+    |  mwLogServiceImpl.dll                               |  ???                  |
+    |  libmwconnectoropensslinitializer.dll               |  ???                  |
+    |  PocoNet64.dll                                      |  ???                  |
+    |  PocoNetSSL64.dll                                   |  ???                  |
+    |  PocoFoundation64.dll                               |  ???                  |
+    |  iphlpapi.dll                                       |  6.2.19041.1865       |
+    |  PocoCrypto64.dll                                   |  ???                  |
+    |  PocoUtil64.dll                                     |  ???                  |
+    |  PocoJSON64.dll                                     |  ???                  |
+    |  PocoXML64.dll                                      |  ???                  |
+    |  cryptsp.dll                                        |  6.2.19041.546        |
+    |  rsaenh.dll                                         |  6.2.19041.1052       |
+    |  cryptbase.dll                                      |  6.2.19041.546        |
+    |  bcryptprimitives.dll                               |  6.2.19041.1415       |
+    |  mwopengl_startup_plugin.dll                        |  ???                  |
+    |  libmwgraphics_state.dll                            |  ???                  |
+    |  display_device.dll                                 |  ???                  |
+    |  setupapi.dll                                       |  6.2.19041.1741       |
+    |  cfgmgr32.dll                                       |  6.2.19041.1620       |
+    |  libmwnativedisplay.dll                             |  ???                  |
+    |  MVMLocal.dll                                       |  ???                  |
+    |  mcr.dll                                            |  ???                  |
+    |  iqm.dll                                            |  ???                  |
+    |  libmwbridge.dll                                    |  ???                  |
+    |  imagehlp.dll                                       |  6.2.19041.1415       |
+    |  libmex.dll                                         |  1.0.0.1              |
+    |  libmwcwf_implementation.dll                        |  ???                  |
+    |  mpath.dll                                          |  ???                  |
+    |  libmwsearch_path_impl.dll                          |  ???                  |
+    |  libmwflurlmanager.dll                              |  ???                  |
+    |  libmwsplashscreen.dll                              |  ???                  |
+    |  libmwmatlab_modules_implementation.dll             |  ???                  |
+    |  m_dispatcher.dll                                   |  ???                  |
+    |  m_interpreter.dll                                  |  ???                  |
+    |  m_lxe.dll                                          |  ???                  |
+    |  libmwpnpthread.dll                                 |  ???                  |
+    |  ddux.dll                                           |  ???                  |
+    |  language_execution_interfaces.dll                  |  ???                  |
+    |  udd.dll                                            |  1.0.0.1              |
+    |  m_parser.dll                                       |  ???                  |
+    |  errorrecovery.dll                                  |  ???                  |
+    |  libmwfoundation_matlabdata_matlab.dll              |  ???                  |
+    |  generate_diag_message.dll                          |  ???                  |
+    |  profiler.dll                                       |  ???                  |
+    |  libmwmathlinalg.dll                                |  ???                  |
+    |  libmwmathrng.dll                                   |  ???                  |
+    |  winmm.dll                                          |  6.2.19041.546        |
+    |  libmwspmatrix.dll                                  |  ???                  |
+    |  libmwlapack.dll                                    |  ???                  |
+    |  libmwumfpack_api.dll                               |  ???                  |
+    |  libmwcholmod.dll                                   |  ???                  |
+    |  libmwma57.dll                                      |  ???                  |
+    |  libmwspqr.dll                                      |  ???                  |
+    |  msvcr110.dll                                       |  11.0.51106.1         |
+    |  libmmd.dll                                         |  18.0.0.0             |
+    |  libifcoremd.dll                                    |  18.0.1.0             |
+    |  libmwmodule_descriptor_implementation.dll          |  ???                  |
+    |  libmwmodule_feature.dll                            |  ???                  |
+    |  libmwsearch_path_features.dll                      |  ???                  |
+    |  libmwmatlab_modules_events.dll                     |  ???                  |
+    |  libmwmatlab_modules_interfaces.dll                 |  ???                  |
+    |  libmwmodule_descriptor_interfaces.dll              |  ???                  |
+    |  libmwm_dispatcher_interfaces.dll                   |  ???                  |
+    |  contextdata.dll                                    |  ???                  |
+    |  namesuggestion.dll                                 |  ???                  |
+    |  executionDB_instrumentation.dll                    |  ???                  |
+    |  m_ir.dll                                           |  ???                  |
+    |  ir_xfmr.dll                                        |  ???                  |
+    |  mtok.dll                                           |  ???                  |
+    |  lf_util.dll                                        |  ???                  |
+    |  lf_astapi.dll                                      |  ???                  |
+    |  fe_driver.dll                                      |  ???                  |
+    |  fe_astapi.dll                                      |  ???                  |
+    |  fe_util.dll                                        |  ???                  |
+    |  fe_name_resolution.dll                             |  ???                  |
+    |  libmwir.dll                                        |  ???                  |
+    |  libmwlxeindexing.dll                               |  ???                  |
+    |  libmwlxeinterfaces.dll                             |  ???                  |
+    |  libmwlxeutilities.dll                              |  ???                  |
+    |  libmwlxetypes.dll                                  |  ???                  |
+    |  libmwmathcore.dll                                  |  1.0.0.1              |
+    |  libmwmathelem.dll                                  |  1.0.0.1              |
+    |  libmwdebug_printer.dll                             |  ???                  |
+    |  libmwhotlinkprinter.dll                            |  ???                  |
+    |  libmwlxeirgen.dll                                  |  ???                  |
+    |  libmwblas.dll                                      |  ???                  |
+    |  libmwmathutil.dll                                  |  ???                  |
+    |  libmwamd.dll                                       |  ???                  |
+    |  libmwcsparse.dll                                   |  ???                  |
+    |  libmwmetis.dll                                     |  ???                  |
+    |  libmwumfpack.dll                                   |  ???                  |
+    |  libmwmfl_rng.dll                                   |  ???                  |
+    |  libmwompwrapper.dll                                |  ???                  |
+    |  libmwbinder.dll                                    |  ???                  |
+    |  libmwcolamd.dll                                    |  ???                  |
+    |  fe_lowering.dll                                    |  ???                  |
+    |  fe_parser.dll                                      |  ???                  |
+    |  fe_parallel.dll                                    |  ???                  |
+    |  lf_features.dll                                    |  ???                  |
+    |  libmwdSFMT.dll                                     |  ???                  |
+    |  libMatlabDataArray.dll                             |  ???                  |
+    |  libiomp5md.dll                                     |  5.0.2018.209         |
+    |  shcore.dll                                         |  6.2.19041.1865       |
+    |  mwpreloadbuiltins.dll                              |  ???                  |
+    |  kernel.appcore.dll                                 |  6.2.19041.546        |
+    |  mwLibXML2InitPlugin.dll                            |  ???                  |
+    |  libmwxmlutils.dll                                  |  ???                  |
+    |  libxml2.dll                                        |  2.9.8.0              |
+    |  wsock32.dll                                        |  6.2.19041.1          |
+    |  windows.storage.dll                                |  6.2.19041.1949       |
+    |  wldp.dll                                           |  6.2.19041.1949       |
+    |  profapi.dll                                        |  6.2.19041.844        |
+    |  napinsp.dll                                        |  6.2.19041.546        |
+    |  pnrpnsp.dll                                        |  6.2.19041.546        |
+    |  wshbth.dll                                         |  6.2.19041.546        |
+    |  nlaapi.dll                                         |  6.2.19041.1151       |
+    |  dnsapi.dll                                         |  6.2.19041.1865       |
+    |  nsi.dll                                            |  6.2.19041.610        |
+    |  winrnr.dll                                         |  6.2.19041.546        |
+    |  devobj.dll                                         |  6.2.19041.1620       |
+    |  devrtl.dll                                         |  6.2.19041.1620       |
+    |  drvstore.dll                                       |  6.2.19041.1949       |
+    |  spinf.dll                                          |  6.2.19041.546        |
+    |  mwmatlab_performance_diagnostic.dll                |  ???                  |
+    |  mwCppMicroServicesShutdownHook.dll                 |  ???                  |
+    |  mwhttpclient_core_startup.dll                      |  ???                  |
+    |  mweventmgrsrc_global.dll                           |  ???                  |
+    |  xmlxrcsc.dll                                       |  ???                  |
+    |  libmwsavevars.dll                                  |  ???                  |
+    |  jmi.dll                                            |  1.0.0.1              |
+    |  libmwfloat2str.dll                                 |  ???                  |
+    |  saveload.dll                                       |  ???                  |
+    |  nativejava_services.dll                            |  ???                  |
+    |  addons_javapath.dll                                |  ???                  |
+    |  libmat.dll                                         |  ???                  |
+    |  libmw_addons_core_metadata_provider.dll            |  ???                  |
+    |  hdf5.dll                                           |  ???                  |
+    |  libmwsprootutils.dll                               |  ???                  |
+    |  msvcr120.dll                                       |  12.0.21005.1         |
+    |  libmwmetadata_core.dll                             |  ???                  |
+    |  libmwmetadata_serializer.dll                       |  ???                  |
+    |  libmwresources_folder.dll                          |  ???                  |
+    |  uxtheme.dll                                        |  6.2.19041.1620       |
+    |  clbcatq.dll                                        |  2001.12.10941.16384  |
+    |  propsys.dll                                        |  7.0.19041.1741       |
+    |  mwuiwloader.dll                                    |  ???                  |
+    |  uiw.dll                                            |  1.0.0.1              |
+    |  comdlg32.dll                                       |  6.2.19041.1806       |
+    |  winspool.drv                                       |  6.2.19041.1865       |
+    |  libmwgui.dll                                       |  1.0.0.1              |
+    |  mfc140.dll                                         |  14.15.26706.0        |
+    |  comctl32.dll                                       |  5.82.19041.1110      |
+    |  graphics_util.dll                                  |  ???                  |
+    |  libtex_base.dll                                    |  ???                  |
+    |  mcos_impl.dll                                      |  ???                  |
+    |  parser_alias.dll                                   |  ???                  |
+    |  libmwobject_serialization_customization.dll        |  ???                  |
+    |  msctf.dll                                          |  6.2.19041.1949       |
+    |  mwddux_impl.dll                                    |  ???                  |
+    |  diagnostic.dll                                     |  ???                  |
+    |  libmwflhttpclient.dll                              |  ???                  |
+    |  libmwflhttpproxy.dll                               |  ???                  |
+    |  webproxy.dll                                       |  ???                  |
+    |  fileio.dll                                         |  ???                  |
+    |  timefun.dll                                        |  ???                  |
+    |  winhttp.dll                                        |  6.2.19041.1682       |
+    |  builtinsutil.dll                                   |  ???                  |
+    |  textstream.dll                                     |  ???                  |
+    |  duration.dll                                       |  ???                  |
+    |  datetime.dll                                       |  ???                  |
+    |  string.dll                                         |  ???                  |
+    |  textio.dll                                         |  ???                  |
+    |  pattern.dll                                        |  ???                  |
+    |  dhcpcsvc6.dll                                      |  6.2.19041.1949       |
+    |  dhcpcsvc.dll                                       |  6.2.19041.1949       |
+    |  rasadhlp.dll                                       |  6.2.19041.546        |
+    |  libmwlmgrimpl.dll                                  |  ???                  |
+    |  netapi32.dll                                       |  6.2.19041.1949       |
+    |  userenv.dll                                        |  6.2.19041.572        |
+    |  msi.dll                                            |  5.0.19041.1766       |
+    |  wininet.dll                                        |  11.0.19041.1566      |
+    |  libmwjail_launcher.dll                             |  ???                  |
+    |  libmwteumhlmofflineuse.dll                         |  ???                  |
+    |  libmwollauthzcommon.dll                            |  ???                  |
+    |  instlic_4a.dll                                     |  ???                  |
+    |  udd_mi.dll                                         |  1.0.0.1              |
+    |  udd_jmi.dll                                        |  ???                  |
+    |  mwjmiloader.dll                                    |  ???                  |
+    |  jvm_interface.dll                                  |  ???                  |
+    |  jvm.dll                                            |  8.0.2020.8           |
+    |  version.dll                                        |  6.2.19041.546        |
+    |  msvcr100.dll                                       |  10.0.40219.1         |
+    |  libmwstoragesystemactivator.dll                    |  ???                  |
+    |  icmp.dll                                           |  6.2.19041.1          |
+    |  libmwstoragefileprovideractivator.dll              |  ???                  |
+    |  libmwstoragefileprovider.dll                       |  ???                  |
+    |  wbemprox.dll                                       |  6.2.19041.1320       |
+    |  wbemcomn.dll                                       |  6.2.19041.1566       |
+    |  wbemsvc.dll                                        |  6.2.19041.1320       |
+    |  fastprox.dll                                       |  6.2.19041.546        |
+    |  amsi.dll                                           |  6.2.19041.1620       |
+    |  eamsi.dll                                          |  10.28.27.0           |
+    |  libmwsplashscreenimpl.dll                          |  ???                  |
+    |  windowscodecs.dll                                  |  6.2.19041.1706       |
+    |  gdiplus.dll                                        |  6.2.19041.2006       |
+    |  textinputframework.dll                             |  6.2.19041.1806       |
+    |  coremessaging.dll                                  |  6.2.19041.746        |
+    |  coreuicomponents.dll                               |  6.2.19041.546        |
+    |  ntmarta.dll                                        |  6.2.19041.546        |
+    |  wintypes.dll                                       |  6.2.19041.1949       |
+    |  TextShaping.dll                                    |  ???                  |
+    |  mwm_interpreter_builtinimpl.dll                    |  ???                  |
+    |  builtin.dll                                        |  ???                  |
+    |  verify.dll                                         |  8.0.202.8            |
+    |  java.dll                                           |  8.0.202.8            |
+    |  zip.dll                                            |  8.0.202.8            |
+    |  nativejmi.dll                                      |  ???                  |
+    |  tabcompletion.dll                                  |  ???                  |
+    |  libmwidlebusyevents.dll                            |  ???                  |
+    |  mlint.dll                                          |  ???                  |
+    |  mwboost_locale-vc141-mt-1_65_1.dll                 |  ???                  |
+    |  pa_function_registry.dll                           |  ???                  |
+    |  ca_astapi.dll                                      |  ???                  |
+    |  ca_analysis.dll                                    |  ???                  |
+    |  nativeutil.dll                                     |  ???                  |
+    |  nativeservices.dll                                 |  ???                  |
+    |  nativesettings.dll                                 |  ???                  |
+    |  nativemvm.dll                                      |  ???                  |
+    |  ddux_jni.dll                                       |  ???                  |
+    |  awt.dll                                            |  8.0.202.8            |
+    |  dwmapi.dll                                         |  6.2.19041.746        |
+    |  opengl32.dll                                       |  6.2.19041.1806       |
+    |  glu32.dll                                          |  6.2.19041.1806       |
+    |  nativejava.dll                                     |  ???                  |
+    |  fontmanager.dll                                    |  8.0.202.8            |
+    |  net.dll                                            |  8.0.202.8            |
+    |  urlmon.dll                                         |  11.0.19041.1949      |
+    |  iertutil.dll                                       |  11.0.19041.1949      |
+    |  srvcli.dll                                         |  6.2.19041.1645       |
+    |  netutils.dll                                       |  6.2.19041.546        |
+    |  nio.dll                                            |  8.0.202.8            |
+    |  nativecapabilities.dll                             |  ???                  |
+    |  nativelmgr.dll                                     |  ???                  |
+    |  nativecmdwin.dll                                   |  ???                  |
+    |  nativepa.dll                                       |  ???                  |
+    |  mldisplay.dll                                      |  ???                  |
+    |  dataexchange.dll                                   |  6.2.19041.1387       |
+    |  d3d11.dll                                          |  6.2.19041.1865       |
+    |  dcomp.dll                                          |  6.2.19041.1741       |
+    |  dxgi.dll                                           |  6.2.19041.1806       |
+    |  twinapi.appcore.dll                                |  6.2.19041.1865       |
+    |  tsprint.dll                                        |  10.0.19041.153       |
+    |  winsta.dll                                         |  6.2.19041.546        |
+    |  wtsapi32.dll                                       |  6.2.19041.546        |
+    |  t2k.dll                                            |  8.0.202.8            |
+    |  comctl32.dll                                       |  6.10.19041.1110      |
+    |  mwcomcliloader.dll                                 |  ???                  |
+    |  comcli.dll                                         |  1.0.0.1              |
+    |  mwgraphics_init_plugin.dll                         |  ???                  |
+    |  libmwconnectorautostart.dll                        |  ???                  |
+    |  libmwconnectorconnectorapi.dll                     |  ???                  |
+    |  mwPathdefPlugin.dll                                |  ???                  |
+    |  mwmcr_builtinimpl.dll                              |  ???                  |
+    |  mwm_dispatcher_builtinimpl.dll                     |  ???                  |
+    |  mwmlintrospect_builtinimpl.dll                     |  ???                  |
+    |  mlintrospect.dll                                   |  ???                  |
+    |  mwsysintrospect_builtinimpl.dll                    |  ???                  |
+    |  sysintrospect.dll                                  |  ???                  |
+    |  mwstrfun_builtinimpl.dll                           |  ???                  |
+    |  strfun.dll                                         |  ???                  |
+    |  mwstring_builtinimpl.dll                           |  ???                  |
+    |  mwlibmwbridge_builtinimpl.dll                      |  ???                  |
+    |  mwpattern_builtinimpl.dll                          |  ???                  |
+    |  mw_spregistration.dll                              |  ???                  |
+    |  mwlibmwmathelem_builtinimpl.dll                    |  ???                  |
+    |  mwlibmwmathcore_builtinimpl.dll                    |  ???                  |
+    |  mwtypeconversion_builtinimpl.dll                   |  ???                  |
+    |  typeconversion.dll                                 |  ???                  |
+    |  mwapplyfuns_builtinimpl.dll                        |  ???                  |
+    |  applyfuns.dll                                      |  ???                  |
+    |  suggestionexception.dll                            |  ???                  |
+    |  mwcellstructconversion_builtinimpl.dll             |  ???                  |
+    |  cellstructconversion.dll                           |  ???                  |
+    |  mwfileio_builtinimpl.dll                           |  ???                  |
+    |  string_startup_plugin.dll                          |  ???                  |
+    |  mw_addon_matlab_path_service_provider.dll          |  ???                  |
+    |  mwInitDesktopUtils.dll                             |  ???                  |
+    |  mwcommandfuns_builtinimpl.dll                      |  ???                  |
+    |  commandfuns.dll                                    |  ???                  |
+    |  libmwstoragecloudprovider.dll                      |  ???                  |
+    |  mwGettingStarted.dll                               |  ???                  |
+    |  mwStartupFolderPlugin.dll                          |  ???                  |
+    |  mwpermvm_emattachsvc.dll                           |  ???                  |
+    |  mwjmiplugin.dll                                    |  ???                  |
+    |  mwglobal_emattachsvc.dll                           |  ???                  |
+    |  mweventmgrsrc_permvm.dll                           |  ???                  |
+    |  mwdiagnostic_builtinimpl.dll                       |  ???                  |
+    |  mwformat_builtinimpl.dll                           |  ???                  |
+    |  format.dll                                         |  ???                  |
+    |  mwmldisplay_builtinimpl.dll                        |  ???                  |
+    |  mwhg_builtinimpl.dll                               |  ???                  |
+    |  hg.dll                                             |  1.0.0.1              |
+    |  hgdatatypes.dll                                    |  ???                  |
+    |  libmwdrawnow.dll                                   |  ???                  |
+    |  libuij.dll                                         |  1.0.0.1              |
+    |  hgutils.dll                                        |  ???                  |
+    |  hgweb_interface.dll                                |  ???                  |
+    |  libmwgbt.dll                                       |  ???                  |
+    |  gbtcontroller.dll                                  |  ???                  |
+    |  libmwgbtutils.dll                                  |  ???                  |
+    |  gbt_uieventdata.dll                                |  ???                  |
+    |  gbtdatatypes.dll                                   |  ???                  |
+    |  structuredoutput.dll                               |  ???                  |
+    |  libmwhghardcopy.dll                                |  ???                  |
+    |  graphics_jniwrapper.dll                            |  ???                  |
+    |  gbt_java.dll                                       |  ???                  |
+    |  libmwconnectorbinaryapi.dll                        |  ???                  |
+    |  libmwconnectormessageserviceapi.dll                |  ???                  |
+    |  libmwconnectorframeworkapi.dll                     |  ???                  |
+    |  libmwconnectorcommon.dll                           |  ???                  |
+    |  mwboost_random-vc141-mt-1_65_1.dll                 |  ???                  |
+    |  mwhgutils_builtinimpl.dll                          |  ???                  |
+    |  mwlibmwservices_builtinimpl.dll                    |  ???                  |
+    |  mwsaveload_builtinimpl.dll                         |  ???                  |
+    |  mwtypevalidation_builtinimpl.dll                   |  ???                  |
+    |  typevalidation.dll                                 |  ???                  |
+    |  nativei18n.dll                                     |  ???                  |
+    |  nativedmatlab.dll                                  |  ???                  |
+    |  mwmcos_impl_builtinimpl.dll                        |  ???                  |
+    |  tabcompletion_startup_plugin.dll                   |  ???                  |
+    |  mwdevicepluginstartup.dll                          |  ???                  |
+    |  nativemldrivedesktop.dll                           |  ???                  |
+    |  libmwstoragemldrivematlabaccess.dll                |  ???                  |
+    |  libmwstoragemldriveaccess.dll                      |  ???                  |
+    |  libmwagentcoreserviceutils.dll                     |  ???                  |
+    |  libmwagentcontroldiscovery.dll                     |  ???                  |
+    |  libmwagentcorecontainer.dll                        |  ???                  |
+    |  libmwagentcontrolcommon.dll                        |  ???                  |
+    |  libmwagentdirectoryclient.dll                      |  ???                  |
+    |  libmwagentnanomsgtransport.dll                     |  ???                  |
+    |  libmwstoragesyncserviceclient.dll                  |  ???                  |
+    |  libmwagentutils.dll                                |  ???                  |
+    |  libmwagentcoretransport.dll                        |  ???                  |
+    |  libmwagentfilelocking.dll                          |  ???                  |
+    |  libmwstoragesyncserviceserialisation.dll           |  ???                  |
+    |  libmwagentdirectoryserialisation.dll               |  ???                  |
+    |  libmwagentnanomsgbytetransport.dll                 |  ???                  |
+    |  libmwmatlabconnectorurlmanager.dll                 |  ???                  |
+    |  libmwagentnanomsg.dll                              |  ???                  |
+    |  avrocpp.dll                                        |  ???                  |
+    |  nanomsg.dll                                        |  ???                  |
+    |  mwfunctionargs_builtinimpl.dll                     |  ???                  |
+    |  functionargs.dll                                   |  ???                  |
+    |  nativecfb.dll                                      |  ???                  |
+    |  system_fileinfo.dll                                |  ???                  |
+    |  mwasyncioimpl_builtinimpl.dll                      |  ???                  |
+    |  asyncioimpl.dll                                    |  ???                  |
+    |  tamutil.dll                                        |  ???                  |
+    |  matlabproxy.dll                                    |  ???                  |
+    |  asynciocore.dll                                    |  ???                  |
+    |  thumbcache.dll                                     |  6.2.19041.1865       |
+    |  hotplugmlconverter.dll                             |  ???                  |
+    |  hotplugdevice.dll                                  |  ???                  |
+    |  policymanager.dll                                  |  6.2.19041.1865       |
+    |  msvcp110_win.dll                                   |  6.2.19041.546        |
+    |  nativehg.dll                                       |  ???                  |
+    |  libmw_prefdirwarning.dll                           |  ???                  |
+    |  mwperformance_startup.dll                          |  ???                  |
+    |  performance.dll                                    |  ???                  |
+    |  performance_measurement_instrument.dll             |  ???                  |
+    |  libmwmda_startupplugin.dll                         |  ???                  |
+    |  foundation_extdata_matrix_data.dll                 |  ???                  |
+    |  nativewebproxy.dll                                 |  ???                  |
+    |  sunec.dll                                          |  8.0.202.8            |
+    |  nativemldrivetripwireaccess.dll                    |  ???                  |
+    |  libmwmatlabconnectortripwire.dll                   |  ???                  |
+    |  libmwmatlabconnectorlvchecker.dll                  |  ???                  |
+    |  libmwmatlabconnectorlvhttpclientadaptor.dll        |  ???                  |
+    |  libmwmatlabconnectorlvinstallationdiscovery.dll    |  ???                  |
+    |  libmwmatlabconnectorlvmcidownloader.dll            |  ???                  |
+    |  pocozip64.dll                                      |  1.9.0.0              |
+    |  nativewindows.dll                                  |  ???                  |
+    |  mwwkspintrospect_builtinimpl.dll                   |  ???                  |
+    |  wkspintrospect.dll                                 |  ???                  |
+    |  errorrecovery_util.dll                             |  ???                  |
+    |  libmwconnectorconnectorimpl.dll                    |  ???                  |
+    |  libmwconnectoruscontainer.dll                      |  ???                  |
+    |  libmwconnectoradministrationactivator.dll          |  ???                  |
+    |  libmwconnectoradministrationimpl.dll               |  ???                  |
+    |  libmwconnectoradministrationapi.dll                |  ???                  |
+    |  libmwconnectorbayeuxactivator.dll                  |  ???                  |
+    |  libmwconnectorbayeuxapi.dll                        |  ???                  |
+    |  libmwconnectorbayeuximpl.dll                       |  ???                  |
+    |  libmwconnectorhttpapi.dll                          |  ???                  |
+    |  libmwconnectorreactivestreams.dll                  |  ???                  |
+    |  linkinfo.dll                                       |  6.2.19041.546        |
+    |  libmwconnectorbinaryactivator.dll                  |  ???                  |
+    |  libmwconnectorbinaryimpl.dll                       |  ???                  |
+    |  libmwconnectorcommonservicesactivator.dll          |  ???                  |
+    |  libmwconnectorcommonservicesimpl.dll               |  ???                  |
+    |  mrmcorer.dll                                       |  6.2.19041.1566       |
+    |  libmwconnectorconfigurationactivator.dll           |  ???                  |
+    |  libmwconnectorconfigurationapi.dll                 |  ???                  |
+    |  libmwconnectorconfigurationimpl.dll                |  ???                  |
+    |  libmwconnectorjsonapi.dll                          |  ???                  |
+    |  libmwconnectorcontaineractivator.dll               |  ???                  |
+    |  libmwconnectorrequestresponse.dll                  |  ???                  |
+    |  libmwconnectorcontainerimpl.dll                    |  ???                  |
+    |  libmwconnectorcontainerapi.dll                     |  ???                  |
+    |  libmwconnectordduxactivator.dll                    |  ???                  |
+    |  libmwconnectordduximpl.dll                         |  ???                  |
+    |  libmwconnectordduxapi.dll                          |  ???                  |
+    |  libmwconnectordesktopactivator.dll                 |  ???                  |
+    |  libmwconnectordesktopapi.dll                       |  ???                  |
+    |  libmwconnectordesktopimpl.dll                      |  ???                  |
+    |  libmwconnectorfilecommon.dll                       |  ???                  |
+    |  libmwconnectorfileapi.dll                          |  ???                  |
+    |  libmwconnectoreditoractivator.dll                  |  ???                  |
+    |  libmwconnectoreditorapi.dll                        |  ???                  |
+    |  libmwconnectoreditorimpl.dll                       |  ???                  |
+    |  libmwconnectormvmcommonapi.dll                     |  ???                  |
+    |  libmwconnectorjninativebridgeapi.dll               |  ???                  |
+    |  libmwconnectorfileactivator.dll                    |  ???                  |
+    |  libmwconnectorfileimpl.dll                         |  ???                  |
+    |  libmwconnectorfilesharingactivator.dll             |  ???                  |
+    |  libmwconnectorfilesharingapi.dll                   |  ???                  |
+    |  libmwconnectorfilesharingimpl.dll                  |  ???                  |
+    |  libmwconnectorgdsapi.dll                           |  ???                  |
+    |  libmwconnectorfileuploadactivator.dll              |  ???                  |
+    |  libmwconnectorfileuploadimpl.dll                   |  ???                  |
+    |  libmwconnectorfileuploadapi.dll                    |  ???                  |
+    |  libmwconnectorfileversioningactivator.dll          |  ???                  |
+    |  libmwconnectorfileversioningimpl.dll               |  ???                  |
+    |  libmwconnectorfileversioningapi.dll                |  ???                  |
+    |  libmwconnectorframeworkactivator.dll               |  ???                  |
+    |  libmwconnectorframeworkimpl.dll                    |  ???                  |
+    |  libmwconnectorgdsactivator.dll                     |  ???                  |
+    |  libmwconnectorgdsimpl.dll                          |  ???                  |
+    |  libmwconnectorhitchhikeractivator.dll              |  ???                  |
+    |  libmwconnectorhitchhikerapi.dll                    |  ???                  |
+    |  libmwconnectorhitchhikerimpl.dll                   |  ???                  |
+    |  libmwconnectorhttpactivator.dll                    |  ???                  |
+    |  libmwconnectorhttpimpl.dll                         |  ???                  |
+    |  libmwstorageshlibstoragesys.dll                    |  ???                  |
+    |  libmwstoragejvminterface.dll                       |  ???                  |
+    |  libmwstoragesharedlib.dll                          |  ???                  |
+    |  libmwconnectorinformationactivator.dll             |  ???                  |
+    |  libmwconnectorinformationapi.dll                   |  ???                  |
+    |  libmwconnectorinformationimpl.dll                  |  ???                  |
+    |  libmwconnectorinterpreteractivator.dll             |  ???                  |
+    |  libmwconnectorinterpreterimpl.dll                  |  ???                  |
+    |  libmwconnectorjnicosgactivator.dll                 |  ???                  |
+    |  libmwconnectorjnicosgimpl.dll                      |  ???                  |
+    |  libmwconnectorjnijsonactivator.dll                 |  ???                  |
+    |  libmwconnectorjnijsonimpl.dll                      |  ???                  |
+    |  libmwconnectorjnimessageserviceactivator.dll       |  ???                  |
+    |  libmwconnectorjnimessageserviceimpl.dll            |  ???                  |
+    |  libmwconnectorjninativebridgeactivator.dll         |  ???                  |
+    |  libmwconnectorjninativebridgeimpl.dll              |  ???                  |
+    |  libmwconnectorjsonactivator.dll                    |  ???                  |
+    |  libmwconnectorjsonimpl.dll                         |  ???                  |
+    |  libmwconnectorloginactivator.dll                   |  ???                  |
+    |  libmwconnectorloginimpl.dll                        |  ???                  |
+    |  libmwconnectormessageserviceactivator.dll          |  ???                  |
+    |  libmwconnectormessageserviceimpl.dll               |  ???                  |
+    |  nativemlint.dll                                    |  ???                  |
+    |  ca_messages.dll                                    |  ???                  |
+    |  ca_rulesystem.dll                                  |  ???                  |
+    |  libmwconnectorpairingkeyactivator.dll              |  ???                  |
+    |  libmwconnectorpairingkeyimpl.dll                   |  ???                  |
+    |  mwtimefun_builtinimpl.dll                          |  ???                  |
+    |  jna4505654022341628847.dll                         |  4.0.0.5              |
+    |  libmwconnectorrestmatlabactivator.dll              |  ???                  |
+    |  libmwconnectorrestmatlabimpl.dll                   |  ???                  |
+    |  mwshareddatatypes_builtinimpl.dll                  |  ???                  |
+    |  shareddatatypes.dll                                |  ???                  |
+    |  libmwconnectorsecurityactivator.dll                |  ???                  |
+    |  libmwconnectorsecurityimpl.dll                     |  ???                  |
+    |  libmwconnectorsessionactivator.dll                 |  ???                  |
+    |  libmwconnectorsessionapi.dll                       |  ???                  |
+    |  libmwconnectorsessionimpl.dll                      |  ???                  |
+    |  libmwconnectorshadowfilesactivator.dll             |  ???                  |
+    |  libmwconnectorshadowfilesimpl.dll                  |  ???                  |
+    |  libmwconnectorshadowfilesapi.dll                   |  ???                  |
+    |  mwdatetime_mli_builtinimpl.dll                     |  ???                  |
+    |  datetime_mli.dll                                   |  ???                  |
+    |  leapseconds.dll                                    |  ???                  |
+    |  libmwconnectorworkeractivator.dll                  |  ???                  |
+    |  libmwconnectorworkerimpl.dll                       |  ???                  |
+    |  libmwconnectorworkerapi.dll                        |  ???                  |
+    |  security.dll                                       |  6.2.19041.1          |
+    |  fwpuclnt.dll                                       |  6.2.19041.2006       |
+    |  libJavaMSSCCIInterface.dll                         |  ???                  |
+    |  libMSSCCIUtil.dll                                  |  ???                  |
+    |  mwlibmwhghardcopy_builtinimpl.dll                  |  ???                  |
+    |  mwlibmwmsgcatmcos_builtinimpl.dll                  |  ???                  |
+    |  libmwmsgcatmcos.dll                                |  ???                  |
+    |  dcpr.dll                                           |  8.0.202.8            |
+    |  mwlibmwlocalemcos_builtinimpl.dll                  |  ???                  |
+    |  libmwlocalemcos.dll                                |  ???                  |
+    |  mwlibmwconnectorconnectorm_builtinimpl.dll         |  ???                  |
+    |  libmwconnectorconnectorm.dll                       |  ???                  |
+    |  instutil.dll                                       |  ???                  |
+    |  instlic_postinstall.dll                            |  ???                  |
+    |  mwlibmex_builtinimpl.dll                           |  ???                  |
+    |  resources_folder_jni.dll                           |  ???                  |
+    |  chrome_elf.dll                                     |  72.0.3626.121        |
+    |  libcef.dll                                         |  3.3626.1895.0        |
+    |  oleacc.dll                                         |  7.2.19041.746        |
+    |  dwrite.dll                                         |  6.2.19041.1566       |
+    |  hid.dll                                            |  6.2.19041.546        |
+    |  usp10.dll                                          |  6.2.19041.546        |
+    |  credui.dll                                         |  6.2.19041.1741       |
+    |  cryptui.dll                                        |  6.2.19041.1806       |
+    |  ncrypt.dll                                         |  6.2.19041.662        |
+    |  d3d9.dll                                           |  6.2.19041.1865       |
+    |  dxva2.dll                                          |  6.2.19041.1          |
+    |  samcli.dll                                         |  6.2.19041.1466       |
+    |  ntasn1.dll                                         |  6.2.19041.546        |
+    |  jcef.dll                                           |  3.3626.170.0         |
+    |  mmdevapi.dll                                       |  6.2.19041.1503       |
+    |  rdpendp.dll                                        |  6.2.19041.746        |
+    |  mscms.dll                                          |  6.2.19041.746        |
+    |  coloradapterclient.dll                             |  6.2.19041.546        |
+    |  metadata_core_jni.dll                              |  ???                  |
+    |  libmwjniutils.dll                                  |  ???                  |
+    |  metadata_serializer_jni.dll                        |  ???                  |
+    |  sunmscapi.dll                                      |  8.0.202.8            |
+    |  mlapp_jni.dll                                      |  ???                  |
+    |  mlapp_builtins.dll                                 |  ???                  |
+    |  mwlibmwsprootbuiltins_builtinimpl.dll              |  ???                  |
+    |  libmwsprootbuiltins.dll                            |  ???                  |
+    |  atlthunk.dll                                       |  6.2.19041.546        |
+    |  mwcontainers_builtinimpl.dll                       |  ???                  |
+    |  containers.dll                                     |  ???                  |
+    |  mwjmi_builtinimpl.dll                              |  ???                  |
+    |  mwws_json_builtinimpl.dll                          |  ???                  |
+    |  ws_json.dll                                        |  ???                  |
+    |  json.dll                                           |  ???                  |
+    |  mwlibmwconnectornativebridgem_builtinimpl.dll      |  ???                  |
+    |  libmwconnectornativebridgem.dll                    |  ???                  |
+    |  nativelex.dll                                      |  ???                  |
+    |  gpapi.dll                                          |  6.2.19041.2006       |
+    |  gluegen-rt.dll                                     |  ???                  |
+    |  jawt.dll                                           |  8.0.202.8            |
+    |  nativewindow_awt.dll                               |  ???                  |
+    |  nativewindow_win32.dll                             |  ???                  |
+    |  jogl_desktop.dll                                   |  ???                  |
+    |  appxdeploymentclient.dll                           |  6.2.19041.1865       |
+    |  nvoglv64.dll                                       |  30.0.15.1179         |
+    |  cryptnet.dll                                       |  6.2.19041.906        |
+    |  dxcore.dll                                         |  6.2.19041.546        |
+    |  mwmltiming_builtinimpl.dll                         |  ???                  |
+    |  mltiming.dll                                       |  ???                  |
+    |  mwlibmwsearch_path_impl_builtinimpl.dll            |  ???                  |
+    |  mwbuiltins_util_mli_builtinimpl.dll                |  ???                  |
+    |  builtins_util_mli.dll                              |  ???                  |
+    |  mwlibmwmathlinalg_builtinimpl.dll                  |  ???                  |
+    |  mwcodetools_builtinimpl.dll                        |  ???                  |
+    |  codetools.dll                                      |  ???                  |
+    |  mwlibmwconfig_builtinimpl.dll                      |  ???                  |
+    |  libmwconfig.dll                                    |  ???                  |
+    |  mwmlxcodereader_builtinimpl.dll                    |  ???                  |
+    |  mlxcodereader.dll                                  |  ???                  |
+    |  mwhgbuiltins_builtinimpl.dll                       |  ???                  |
+    |  hgbuiltins.dll                                     |  ???                  |
+    |  handle_graphics.dll                                |  1.0.0.1              |
+    |  mwboost_timer-vc141-mt-1_65_1.dll                  |  ???                  |
+    |  libmwmathcgeo.dll                                  |  ???                  |
+    |  cgal-vc140-mt-4.8.1.dll                            |  4.8.1.1000           |
+    |  libmwmfl_interp.dll                                |  ???                  |
+    |  gmp.dll                                            |  ???                  |
+    |  mwlibmwcli_builtinimpl.dll                         |  ???                  |
+    |  libmwcli.dll                                       |  ???                  |
+    |  mwmex_builtin_builtinimpl.dll                      |  ???                  |
+    |  mex_builtin.dll                                    |  ???                  |
+    |  libmexcmd.dll                                      |  ???                  |
+    |  mex_host.dll                                       |  ???                  |
+    |  libmwipclient.dll                                  |  ???                  |
+    |  libmwipmex_client.dll                              |  ???                  |
+    |  libmwiputil.dll                                    |  ???                  |
+    |  libmwip_fevalclient.dll                            |  ???                  |
+    |  mwlibmwmathbit_builtinimpl.dll                     |  ???                  |
+    |  libmwmathbit.dll                                   |  ???                  |
+    |  networkexplorer.dll                                |  6.2.19041.1          |
+    |  mwlibmwsl_services_builtinimpl.dll                 |  ???                  |
+    |  libmwsl_services.dll                               |  ???                  |
+    |  libmwxtester_core_mi.dll                           |  ???                  |
+    |  libmwxtester_core.dll                              |  ???                  |
+    |  libmwsl_diagnostic_core.dll                        |  ???                  |
+    |  sqldb.dll                                          |  ???                  |
+    |  half.dll                                           |  ???                  |
+    |  libmwsl_feature.dll                                |  ???                  |
+    |  scl_regex.dll                                      |  ???                  |
+    |  libmwscl_string.dll                                |  ???                  |
+    |  libmwstringutil.dll                                |  ???                  |
+    |  libsqlite3.dll                                     |  ???                  |
+    |  management.dll                                     |  8.0.202.8            |
+    |  sepia2_lib.dll                                     |  1.2.64.767           |
+    |  winusb.dll                                         |  6.2.19041.1          |
+    |  Sepia2_Lib_thunk_pcwin64.dll                       |  ???                  |
+    +-----------------------------------------------------+-----------------------+
+
+BlockProtection:
+----------------
+
+  Support Info CRC: (66913|51D5)
+
+<snap>
+%-----------------------------------------------------------------------------
+
+SEPIA2_FWR_FreeModuleMap ran OK
+
+SEPIA2_USB_CloseDevice ran OK
+
+>> 

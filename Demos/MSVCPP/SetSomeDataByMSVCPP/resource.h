@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
-// Used by ReadAllDataByMSVCPP.rc and SetSomeDataByMSVCPP.rc
+// Used by ReadAllDataByMSVCPP.rc
 //
 
 // Next default values for new objects
